@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Translucence Transition Network Convert
+Plugin Name: Translucence Transition - Theme Transition
 Plugin URI: 
 Description: 
 Version: 0.0.1
@@ -9,56 +9,50 @@ Author URI: http://www.crystalbarton.com
 */
 
 
-//add_action( 'pre_update_option_template', array('TT_Transition', 'theme_switch') );
-add_action( 'update_option_template', array('TT_Transition', 'theme_switch'), 10, 2 );
-add_action( 'after_switch_theme', array('TT_Transition', 'after_switch_theme') );
+if( !defined('TTTT') ):
+
+define( 'TTTT', 'Translucence Transition - Theme Transition' );
+
+define( 'TTTT_DEBUG', true );
+
+define( 'TTTT_PLUGIN_PATH', dirname(__FILE__) );
+define( 'TTTT_PLUGIN_URL', plugins_url('', __FILE__) );
+
+define( 'TTTT_VERSION', '0.0.1' );
+define( 'TTTT_VERSION_OPTION', 'tt-version' );
+
+endif;
 
 
-if( !class_exists('TT_Transition') ):
-class TT_Transition
+add_action( 'update_option_template', array('TTTT_Main', 'theme_switch'), 10, 2 );
+add_action( 'after_switch_theme', array('TTTT_Main', 'after_switch_theme'), 1 );
+
+
+if( !class_exists('TTTT_Main') ):
+class TTTT_Main
 {
 	
 	public static function theme_switch( $old_template, $new_template )
 	{	
- 		update_option( 'tt_theme_switch', '0' );
-		
-		$switch = get_option( 'tt_theme_switch_options' );
-		if( !$switch ) $switch = '';
-		$switch .= "   |   ".time().'  -  '.$old_template.'  -  '.$new_template;
-		update_option( 'tt_theme_switch_options', $switch );
-		
 		if( $new_template !== 'variations-template-theme' ) return;
 		if( $old_template !== '2010-translucence' ) return;
 		
- 		update_option( 'tt_theme_switch', '1' );
-		
 		update_option( 'tt_previous_theme', get_option('stylesheet') );
-		
- 		update_option( 'tt_theme_switch', '2' );
 	}
 	
 	
 	public static function after_switch_theme()
 	{
-		update_option( 'tt_after_switch_theme', '0' );
-		
 		if( get_option('template') !== 'variations-template-theme' ) return;
 		if( ($previous_theme = get_option('tt_previous_theme')) === false ) return;
 		
-		update_option( 'tt_after_switch_theme', '1' );
-		
-		$theme_mods = get_option( 'theme_mods_'.$previous_theme );
-		if( !$theme_mods ) return;
-		
-		update_option( 'tt_after_switch_theme', '2' );
+		$previous_theme_mods = get_option( 'theme_mods_'.$previous_theme );
+		if( !$previous_theme_mods ) return;
 		
 		$stylesheet = get_option( 'stylesheet' );
 		
- 		echo '<pre>'; var_dump($theme_mods); echo '</pre>';
-		$sidebars_widgets = $theme_mods['sidebars_widgets'];
+		$sidebars_widgets = $previous_theme_mods['sidebars_widgets'];
 		$widget_areas = $sidebars_widgets['data'];
-		
-		update_option( 'tt_after_switch_theme', '3' );
 		
 		//
 		// create a new sidebars_widgets array.
@@ -123,27 +117,6 @@ class TT_Transition
 		$widget_areas['vtt-footer-3'] = $footer3;
 		$widget_areas['vtt-footer-4'] = $footer4;
 		
-		update_option( 'tt_after_switch_theme', '4' );
-		
-		//
-		// update sidebar widgets and delete 2010-transluence sidebar widgets.
-		//
-		
-		$sidebars_widgets['data'] = $widget_areas;
- 		echo '<pre>'; var_dump($sidebars_widgets); echo '</pre>';
-		update_option( 'sidebars_widgets', $sidebars_widgets );
-		
-		//
-		// create new css based on old translucence settings.
-		//
-		
-		update_option( 'tt_after_switch_theme', '5' );
-		
-		$options = get_option( 'translucence_unc_charlotte_options', false );
-		if( !$options ) return;
-
-		update_option( 'tt_after_switch_theme', '6' );
-		
 		$theme_mods = get_option( 'theme_mods_'.$stylesheet );
 		if( !$theme_mods )
 		{
@@ -151,28 +124,35 @@ class TT_Transition
 			$theme_mods['vtt-variation'] = 'default';
 		}
 		
-		update_option( 'tt_after_switch_theme', '7' );
+		//
+		// update sidebar widgets and delete 2010-transluence sidebar widgets.
+		//
 		
+		$sidebars_widgets['data'] = $widget_areas;
+		$theme_mods['sidebars_widgets'] = $sidebars_widgets;
+		
+		//
+		// create new css based on old translucence settings.
+		//
+		
+		$options = get_option( 'translucence_unc_charlotte_options', false );
+		if( !$options ) return;
+
 		$vtt_options = get_option( 'vtt-options', array() );
-		
-		update_option( 'tt_after_switch_theme', '8' );
 		
 		// include jetpack css.
 		if( !class_exists('Jetpack_Custom_CSS') )
 			require_once( ABSPATH . '/wp-content/plugins/jetpack/modules/custom-css/custom-css.php' );
 		
-		update_option( 'tt_after_switch_theme', '9' );
-		
 		if( !post_type_exists('safecss') )
 			Jetpack_Custom_CSS::init();
 		
-		update_option( 'tt_after_switch_theme', '10' );
-		
+//		$css = Jetpack_Custom_CSS::get_css(true);
 		$css = '';
 
 		if( strtolower($options['background_color']) != '#ffffff' )
 		{
-			$theme_mods['background_color'] = $options['background_color'];
+			$theme_mods['background_color'] = str_replace( '#', '', $options['background_color'] );
 		}
 
 		if( strtolower($options['background_image_file']) != 'background-white.png' )
@@ -184,6 +164,32 @@ class TT_Transition
 			
 			$theme_mods['background_attachment'] = $options['background_attachment'];
 		}
+		
+		//
+		// 
+		//
+		
+		$theme_mod_keys_to_copy = array(
+			'background_color',
+			'header_image',
+			'header_image_data',
+			'background_image',
+			'background_repeat',
+			'background_position_x',
+			'background_attachment',
+		);
+		
+		foreach( $theme_mod_keys_to_copy as $copy_key )
+		{
+			if( array_key_exists($copy_key, $previous_theme_mods) )
+			{
+				$theme_mods[$copy_key] = $previous_theme_mods[$copy_key];
+			}
+		}
+		
+		// 
+		// 
+		// 
 		
 		if( strtolower($options['textcolor']) != '#333333' )
 		{
@@ -233,7 +239,7 @@ class TT_Transition
 		{
 			$css .= 
 			' #header #title-box .name { '.
-				TT_Transition::background_color( strtolower($options['title-box-color']), floatval($options['title-box-opacity']) ).
+				TTTT_Main::background_color( strtolower($options['title-box-color']), floatval($options['title-box-opacity']) ).
 			' } ';
 		}
 
@@ -274,7 +280,7 @@ class TT_Transition
 		{
 			$css .= 
 			' #header #title-box .description { '.
-				TT_Transition::background_color( strtolower($options['description-box-color']), floatval($options['description-box-opacity']) ).
+				TTTT_Main::background_color( strtolower($options['description-box-color']), floatval($options['description-box-opacity']) ).
 			' } ';
 		}
 
@@ -354,7 +360,7 @@ class TT_Transition
 		{
 			$css .= 
 			' #site-inside-wrapper { '.
-				TT_Transition::background_color( strtolower($options['site-color']), floatval($options['site-opacity']) ).
+				TTTT_Main::background_color( strtolower($options['site-color']), floatval($options['site-opacity']) ).
 			' } ';
 		}
 
@@ -385,7 +391,7 @@ class TT_Transition
 		{
 			$css .= 
 			' #header { '.
-				TT_Transition::background_color( strtolower($options['header-color']), floatval($options['header-opacity']) ).
+				TTTT_Main::background_color( strtolower($options['header-color']), floatval($options['header-opacity']) ).
 			' } ';
 		}
 		
@@ -443,7 +449,7 @@ class TT_Transition
 		{
 			$css .= 
 			' .taxonomy-list.category-list > a { '.
-				TT_Transition::background_color( strtolower($options['cat-links-color']), floatval($options['cat-links-opacity']) ).
+				TTTT_Main::background_color( strtolower($options['cat-links-color']), floatval($options['cat-links-opacity']) ).
 			' } ';
 		}
 
@@ -499,7 +505,7 @@ class TT_Transition
 		{
 			$css .= 
 			' .taxonomy-list.post_tag-list > a { '.
-				TT_Transition::background_color( strtolower($options['tag-links-color']), floatval($options['tag-links-opacity']) ).
+				TTTT_Main::background_color( strtolower($options['tag-links-color']), floatval($options['tag-links-opacity']) ).
 			' } ';
 		}
 		
@@ -507,25 +513,11 @@ class TT_Transition
 		// update database with new css and theme mods.
 		//
 		
-		update_option( 'tt_after_switch_theme', '11' );
-		
-		update_option( 'tt_vtt-options', $vtt_options );
-		update_option( 'tt_theme_mods_'.$stylesheet, $theme_mods );
-		update_option( 'tt_css', $css );
-		
-		update_option( 'tt_after_switch_theme', '12' );
+		update_option( 'tt_theme_mods', $theme_mods );
 		
 		update_option( 'vtt-options', $vtt_options );
-		
-		update_option( 'tt_after_switch_theme', '13' );
-		
 		update_option( 'theme_mods_'.$stylesheet, $theme_mods );
-		
-		update_option( 'tt_after_switch_theme', '14' );
-		
 		Jetpack_Custom_CSS::save( array( 'css' => $css ) );
-		
-		update_option( 'tt_after_switch_theme', '15' );
 	}
 	
 	
@@ -558,7 +550,7 @@ class TT_Transition
 			return "background-color: transparent";
 		}
 
-		list( $r, $g, $b ) = TT_Transition::hex2rgb( $hex );
+		list( $r, $g, $b ) = TTTT_Main::hex2rgb( $hex );
 		
 		return "
 			background-color: $hex;
