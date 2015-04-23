@@ -41,16 +41,8 @@ class TTTT_Main
 	}
 	
 	
-	public static function after_switch_theme()
+	public static function convert_widgets( $previous_theme_mods, &$theme_mods )
 	{
-		if( get_option('template') !== 'variations-template-theme' ) return;
-		if( ($previous_theme = get_option('tt_previous_theme')) === false ) return;
-		
-		$previous_theme_mods = get_option( 'theme_mods_'.$previous_theme );
-		if( !$previous_theme_mods ) return;
-		
-		$stylesheet = get_option( 'stylesheet' );
-		
 		$sidebars_widgets = $previous_theme_mods['sidebars_widgets'];
 		$widget_areas = $sidebars_widgets['data'];
 		
@@ -117,39 +109,250 @@ class TTTT_Main
 		$widget_areas['vtt-footer-3'] = $footer3;
 		$widget_areas['vtt-footer-4'] = $footer4;
 		
-		$theme_mods = get_option( 'theme_mods_'.$stylesheet );
-		if( !$theme_mods )
-		{
-			$theme_mods = array( false );
-			$theme_mods['vtt-variation'] = 'default';
-		}
 		
 		//
 		// update sidebar widgets and delete 2010-transluence sidebar widgets.
 		//
 		
 		$sidebars_widgets['data'] = $widget_areas;
-		$theme_mods['sidebars_widgets'] = $sidebars_widgets;
+		$theme_mods['sidebars_widgets'] = $sidebars_widgets;	
+	}
+	
+	
+	public static function after_switch_theme()
+	{
+		//
+		// 
+		//
+		
+		if( get_option('template') !== 'variations-template-theme' ) return;
+		if( ($previous_theme = get_option('tt_previous_theme')) === false ) return;
+		
+		$allowed_themes = array(
+			'translucence-uncc-minimal-light',
+			'translucence-unc-charlotte',
+		);
+		
+		if( !in_array($previous_theme, $allowed_themes) ) return;
+		
 		
 		//
-		// create new css based on old translucence settings.
+		// 
 		//
 		
-		$options = get_option( 'translucence_unc_charlotte_options', false );
-		if( !$options ) return;
+		$previous_theme_mods = get_option( 'theme_mods_'.$previous_theme );
+		if( !$previous_theme_mods ) return;
+
+		$stylesheet = get_option( 'stylesheet' );
+		$theme_mods = get_option( 'theme_mods_'.$stylesheet );
+		if( !$theme_mods )
+		{
+			$theme_mods = array( false );
+		}
 
 		$vtt_options = get_option( 'vtt-options', array() );
 		
-		// include jetpack css.
+		//
+		//
+		//
+		
+		TTTT_Main::convert_widgets( $previous_theme_mods, $theme_mods );
+		
+		//
+		//
+		//
+		
 		if( !class_exists('Jetpack_Custom_CSS') )
 			require_once( ABSPATH . '/wp-content/plugins/jetpack/modules/custom-css/custom-css.php' );
 		
 		if( !post_type_exists('safecss') )
 			Jetpack_Custom_CSS::init();
-		
-//		$css = Jetpack_Custom_CSS::get_css(true);
-		$css = '';
 
+		$css = Jetpack_Custom_CSS::get_css(true);
+//		$css = '';
+		
+		//
+		// create new css based on old translucence settings.
+		//
+		
+		//
+		// change variation.
+		//
+		switch( $previous_theme )
+		{
+			case 'translucence-uncc':
+				$options = get_option( '2010_translucence_options' );
+				break;
+			
+			case 'translucence-uncc-minimal-dark':
+			case 'translucence-uncc-minimal-light':
+				$options = get_option( 'translucence_unc_charlotte_options' );
+				break;
+			
+			default:
+				$theme_mods['vtt-variation'] = 'default';
+				break;
+		}
+		
+		if( $options )
+		{
+			switch( $options['background'] )
+			{
+				case 'uncc-white':
+					$theme_mods['vtt-variation'] = 'uncc-light';
+					break;
+				case 'uncc-std02':
+					$theme_mods['vtt-variation'] = 'uncc';
+					break;
+			
+				case 'uncc-min-dark':
+				case 'uncc-dark-gray':
+					$theme_mods['vtt-variation'] = 'dark';
+					break;
+			
+				case 'uncc-min-light':
+				default:
+					$theme_mods['vtt-variation'] = 'default';
+					break;
+			}
+
+			switch( $options['background'] )
+			{
+				case 'uncc-white':
+				case 'uncc-std02':
+					TTTT_Main::get_uncc_changes( $css, $previous_theme_mods, $theme_mods, $vtt_options );
+					break;
+				
+				case 'uncc-min-dark':
+				case 'uncc-dark-gray':
+					TTTT_Main::get_dark_changes( $css, $previous_theme_mods, $theme_mods, $vtt_options );
+					break;
+				
+				case 'uncc-min-light':
+					TTTT_Main::get_light_changes( $css, $previous_theme_mods, $theme_mods, $vtt_options );
+					break;
+				
+				default:
+					break;
+			}
+		}
+		
+		//
+		// update database with new css and theme mods.
+		//
+		
+		update_option( 'vtt-options', $vtt_options );
+		update_option( 'theme_mods_'.$stylesheet, $theme_mods );
+		Jetpack_Custom_CSS::save( array( 'css' => $css ) );
+	}
+	
+	
+	public static function hex2rgb( $hex )
+	{
+		$hex = str_replace( "#", "", $hex );
+		
+		if( strlen($hex) == 3 )
+		{
+			$r = hexdec( substr($hex,0,1).substr($hex,0,1) );
+			$g = hexdec( substr($hex,1,1).substr($hex,1,1) );
+			$b = hexdec( substr($hex,2,1).substr($hex,2,1) );
+		}
+		else
+		{
+			$r = hexdec( substr($hex,0,2) );
+			$g = hexdec( substr($hex,2,2) );
+			$b = hexdec( substr($hex,4,2) );
+		}
+		
+		$rgb = array( $r, $g, $b );
+		return $rgb; // returns an array with the rgb values
+	}
+	
+	
+	public static function background_color( $hex, $opacity )
+	{
+		if( $opacity == 0 )
+		{
+			return "background-color: transparent";
+		}
+
+		list( $r, $g, $b ) = TTTT_Main::hex2rgb( $hex );
+		
+		return "
+			background-color: $hex;
+			background-color: rgba( $r, $g, $b, $opacity );
+		";
+	}
+	
+	
+	
+	public static function get_uncc_changes( &$css, &$previous_theme_mods, &$theme_mods, &$vtt_options )
+	{
+		$theme_mod_keys_to_copy = array(
+			'header_image',
+			'header_image_data',
+		);
+		
+		foreach( $theme_mod_keys_to_copy as $copy_key )
+		{
+			if( array_key_exists($copy_key, $previous_theme_mods) )
+			{
+				$theme_mods[$copy_key] = $previous_theme_mods[$copy_key];
+			}
+		}
+
+		if( is_array($previous_theme_mods) &&
+		    array_key_exists('nav_menu_locations', $previous_theme_mods) &&
+		    is_array($previous_theme_mods['nav_menu_locations']) &&
+		    array_key_exists('primary', $previous_theme_mods['nav_menu_locations']) )
+		{
+			$theme_mods['nav_menu_locations'] = array(
+				'header-navigation'	=> $previous_theme_mods['nav_menu_locations']['primary'],
+			);
+		}		
+		
+	}
+
+
+	public static function get_dark_changes( &$css, &$previous_theme_mods, &$theme_mods, &$vtt_options )
+	{
+		$options = get_option( 'translucence_unc_charlotte_options', false );
+		if( !$options ) return;
+
+		$theme_mod_keys_to_copy = array(
+			'background_color',
+			'header_image',
+			'header_image_data',
+			'background_image',
+			'background_repeat',
+			'background_position_x',
+			'background_attachment',
+		);
+		
+		foreach( $theme_mod_keys_to_copy as $copy_key )
+		{
+			if( array_key_exists($copy_key, $previous_theme_mods) )
+			{
+				$theme_mods[$copy_key] = $previous_theme_mods[$copy_key];
+			}
+		}
+		
+		if( is_array($previous_theme_mods) &&
+		    array_key_exists('nav_menu_locations', $previous_theme_mods) &&
+		    is_array($previous_theme_mods['nav_menu_locations']) &&
+		    array_key_exists('primary', $previous_theme_mods['nav_menu_locations']) )
+		{
+			$theme_mods['nav_menu_locations'] = array(
+				'header-navigation'	=> $previous_theme_mods['nav_menu_locations']['primary'],
+			);
+		}		
+	}	
+	
+	public static function get_light_changes( &$css, &$previous_theme_mods, &$theme_mods, &$vtt_options )
+	{
+		$options = get_option( 'translucence_unc_charlotte_options', false );
+		if( !$options ) return;
+		
 		if( strtolower($options['background_color']) != '#ffffff' )
 		{
 			$theme_mods['background_color'] = str_replace( '#', '', $options['background_color'] );
@@ -157,12 +360,17 @@ class TTTT_Main
 
 		if( strtolower($options['background_image_file']) != 'background-white.png' )
 		{
-			$theme_mods['background_image'] = $options['background_image'];
+			if( array_key_exists('background_image', $options) )
+				$theme_mods['background_image'] = $options['background_image'];
 			
-			$position = explode($options['background_position']);
-			$theme_mods['background_position'] = $position[0];
+			if( array_key_exists('background_position', $options) )
+			{
+				$position = explode(' ', $options['background_position']);
+				$theme_mods['background_position'] = $position[0];
+			}
 			
-			$theme_mods['background_attachment'] = $options['background_attachment'];
+			if( array_key_exists('background_attachment', $options) )
+				$theme_mods['background_attachment'] = $options['background_attachment'];
 		}
 		
 		//
@@ -509,53 +717,16 @@ class TTTT_Main
 			' } ';
 		}
 		
-		//
-		// update database with new css and theme mods.
-		//
 		
-		update_option( 'tt_theme_mods', $theme_mods );
-		
-		update_option( 'vtt-options', $vtt_options );
-		update_option( 'theme_mods_'.$stylesheet, $theme_mods );
-		Jetpack_Custom_CSS::save( array( 'css' => $css ) );
-	}
-	
-	
-	public static function hex2rgb( $hex )
-	{
-		$hex = str_replace( "#", "", $hex );
-		
-		if( strlen($hex) == 3 )
+		if( is_array($previous_theme_mods) &&
+		    array_key_exists('nav_menu_locations', $previous_theme_mods) &&
+		    is_array($previous_theme_mods['nav_menu_locations']) &&
+		    array_key_exists('primary', $previous_theme_mods['nav_menu_locations']) )
 		{
-			$r = hexdec( substr($hex,0,1).substr($hex,0,1) );
-			$g = hexdec( substr($hex,1,1).substr($hex,1,1) );
-			$b = hexdec( substr($hex,2,1).substr($hex,2,1) );
-		}
-		else
-		{
-			$r = hexdec( substr($hex,0,2) );
-			$g = hexdec( substr($hex,2,2) );
-			$b = hexdec( substr($hex,4,2) );
-		}
-		
-		$rgb = array( $r, $g, $b );
-		return $rgb; // returns an array with the rgb values
-	}
-	
-	
-	public static function background_color( $hex, $opacity )
-	{
-		if( $opacity == 0 )
-		{
-			return "background-color: transparent";
-		}
-
-		list( $r, $g, $b ) = TTTT_Main::hex2rgb( $hex );
-		
-		return "
-			background-color: $hex;
-			background-color: rgba( $r, $g, $b, $opacity );
-		";
+			$theme_mods['nav_menu_locations'] = array(
+				'header-navigation'	=> $previous_theme_mods['nav_menu_locations']['primary'],
+			);
+		}		
 	}
 	
 }

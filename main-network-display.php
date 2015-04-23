@@ -64,8 +64,8 @@ class TTNAP_Main
 		$model = TT_Model::get_instance();
 		$model->create_tables();
 
- 		update_option( TT_VERSION_OPTION, TT_VERSION );
- 		update_option( TT_DB_VERSION_OPTION, TT_DB_VERSION );
+ 		update_option( TTNAP_VERSION_OPTION, TTNAP_VERSION );
+ 		update_option( TTNAP_DB_VERSION_OPTION, TTNAP_DB_VERSION );
 	}
 	
 }

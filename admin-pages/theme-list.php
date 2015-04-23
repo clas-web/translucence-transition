@@ -92,8 +92,8 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 	 */
 	public function enqueue_scripts()
 	{
-		wp_enqueue_script( 'tt-sites', TT_PLUGIN_URL.'/admin-pages/theme-list.js', array('jquery') );
-		wp_enqueue_style( 'tt-sites', TT_PLUGIN_URL.'/admin-pages/style.css' );
+		wp_enqueue_script( 'tt-sites', TTNAP_PLUGIN_URL.'/admin-pages/theme-list.js', array('jquery') );
+		wp_enqueue_style( 'tt-sites', TTNAP_PLUGIN_URL.'/admin-pages/style.css' );
 	}
 	
 	
@@ -102,76 +102,145 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 	 */
 	public function display()
 	{
-//		$this->list_table->prepare_items( $this->filters, $this->search, $this->orderby );
+		$old_site_url = 'http://clas-incubator-wp.uncc.edu';
+		$as = $this->model->analyze_sites();
+		
+		echo count($as['sites']).' Sites found.';
+		
 		?>
-		
-		<a href="#tt-analysis">Analysis</a>
-		
-		<div id="ajax-buttons">
-		
+		<h3>Theme Variation List</h3>
+		<div id="tt-variations-list">
 		<?php
-		$this->form_start_get( 'refresh', null, 'refresh' );
-			$this->create_ajax_submit_button( 'Refresh Sites', 'refresh-all-sites', null, null, 'refresh_all_sites_start', 'refresh_all_sites_end', 'refresh_all_sites_loop_start', 'refresh_all_sites_loop_end' );
-		$this->form_end();
-
-		$this->form_start_get( 'analyze', null, 'analyze' );
-			$this->create_ajax_submit_button( 'Analyze Sites', 'analyze-sites', null, null, 'analyze_sites_start', 'analyze_sites_end', 'analyze_sites_loop_start', 'analyze_sites_loop_end' );
-		$this->form_end();
-		?>
 		
-		</div>
-
-		<div id="ajax-status">&nbsp;</div>
-		<div id="ajax-progress">&nbsp;</div>
+		foreach( $as['variations'] as $variation => $sites )
+		{
+			echo '<a href="#variation-'.$variation.'">'.$variation.' ('.count($sites).')</a>&nbsp;&nbsp;&nbsp;&nbsp;';
+		}
 		
-		<div id="tt-sites-list">
-		<?php
-// 		$sites = $this->model->get_sites();
-// 		
-// 		foreach( $sites as $site )
-// 		{
-// 			foreach( $site as $key => $value )
-// 			{
-// 				echo $key.' => '.$value.'<br/>';
-// 			}
-// 			echo '<br/><br/>';
-// 		}
+		foreach( $as['variations'] as $variation => $sites )
+		{
+			echo '<h4 id="variation-'.$variation.'">'.$variation.' ('.count($sites).')</h4>';
+			foreach( $sites as $site )
+			{
+				echo '<a href="#blog-'.$site['blog_id'].'">'.$site['title'].'</a><br/>';
+			}
+		}
+		
 		?>
 		</div>
 		
-		<a href="#tt-sites-list">Site List</a>
-		<div id="tt-analysis">
-			<?php
-				$this->model->analyze_sites( $this );
-
-/* 				foreach( $sites as $name => $site )
-				{
-					?>
-					<h2>Compare Site: <?php echo $name; ?></h2>
-					
-					<div>Number of site: <?php echo count($site['default_sites']); ?></div>
-					<?php
-					
-					
-					foreach( $site['default_sites'] as $s )
-					{
-						?>
-						<div>
-							<a href="<?php echo $s['site']['url']; ?>"><?php echo $s['site']['title']; ?></a>
-							<span class="num_problems" style="margin-left:1em;">Number of Problems: <?php echo $s['num_problems']; ?></span>
-						</div>
-						<?php
-					}
-				}
-*/			?>
-		</div>
-		<a href="#tt-sites-list">Site List</a>
-		<a href="#tt-analysis">Analysis</a>
-		
+		<h3>All Translucence Sites</h3>
+		<div id="tt-translucence-sites">
 		<?php
-//		$this->form_start( 'theme-list-table' );
-//			$this->list_table->display();
-//		$this->form_end();
+		
+		foreach( $as['sites'] as $site )
+		{
+			echo '<div class="site">';
+			
+			echo '<h4 id="blog-'.$site['blog_id'].'"><a href="'.$site['url'].'" target="_blank">'.$site['title'].'</a></h4>';
+			
+			if( $site['status'] == false )
+			{
+				echo $site['message'];
+				continue;
+			}
+
+			echo '<div class="stylesheet">'.$site['stylesheet'].' / '.$site['options']['background'].'</div>';
+
+			echo '<div class="convert-links">';
+			
+				$this->form_start( 'convert-site' );
+				
+				?>
+				<input type="hidden" name="blog_id" value="<?php echo $site['blog_id']; ?>" />
+				<?php
+				
+				$this->create_ajax_submit_button(
+					'Convert', 
+					'convert-site', 
+					null,
+					null,
+					'convert_site_start',
+					'convert_site_end',
+					'convert_site_loop_start',
+					'convert_site_loop_end' );
+				
+				$this->form_end();
+				
+				echo '&nbsp;<a href="'.$old_site_url.$site['path'].'" target="_blank">Original Site</a>&nbsp;';
+				echo '&nbsp;<a href="'.$site['url'].'" target="_blank">Converted Site</a>&nbsp;';
+			
+			echo '</div>';
+			
+			if( $site['css'] )
+				echo '
+					<div class="css">
+						<h5>Current CSS</h5>
+						<pre>'.$site['css'].'</pre>
+					</div>
+				';
+			if( $site['css_additions'] )
+				echo '
+					<div class="css_additions">
+						<h5>CSS Additions</h5>
+						<pre>'.$this->print_array($site['css_additions']).'</pre>
+					</div>
+				';
+// 			if( $site['theme_mods'] )
+// 				echo '
+// 					<div class="theme_mods">
+// 						<h5>Current Theme Mods</h5>
+// 						<pre>'.$this->print_array($site['theme_mods']).'</pre>
+// 					</div>
+// 				';
+			if( $site['theme_mods_additions'] )
+				echo '
+					<div class="theme_mods_additions">
+						<h5>Theme Mods Additions</h5>
+						<pre>'.$this->print_array($site['theme_mods_additions']).'</pre>
+					</div>
+				';
+			if( $site['vtt_options_additions'] )
+				echo '
+					<div class="vtt_options">
+						<h5>VTT Options</h5>
+						<pre>'.$this->print_array($site['vtt_options_additions']).'</pre>
+					</div>
+				';
+			
+			echo '</div>';
+		}
+	}
+	
+	
+	private function print_array( $array, $num = 0 )
+	{
+		$html = '';
+		
+		foreach( $array as $key => $value )
+		{
+			for( $i = 0; $i < $num; $i++ )
+			{
+				$html .= '     ';
+			}
+			
+			if( is_array($value) )
+			{
+				$html .= "[$key] =>\r\n";
+				$html .= $this->print_array( $value, $num+1 );
+			}
+			elseif( is_object($value) )
+			{
+				$html .=  "[$key] =>\r\n";
+				$html .= $this->print_array( $value, $num+1 );
+			}
+			else
+			{
+				$html .=  "[$key] => $value\r\n";
+			}
+		}
+		
+		return $html;
 	}
 	
 	

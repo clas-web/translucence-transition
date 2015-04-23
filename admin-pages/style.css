@@ -1,38 +1,78 @@
 
 
-#ajax-buttons {
-	margin-bottom:1em;
+#tt-variations-list {
+	border-top:solid 3px #666;
+	padding:1em 0em;
 }
 
-#ajax-buttons > form {
-	display:inline-block;
+#tt-translucence-sites {
+	border-top:solid 3px #666;
 }
 
-#ajax-status {
-	border:solid 1px #ccc;
-	padding:0.5em 1em;
+#tt-translucence-sites h5,
+#tt-translucence-sites pre {
+	margin:0;
+}
+
+#tt-translucence-sites h5 {
+	color:#333;
+	text-decoration:underline;
+}
+
+#tt-translucence-sites .stylesheet {
+	color:#333;
 	margin-bottom:0.5em;
 }
 
-#ajax-progress {
+#tt-translucence-sites .css {
+	color:red;
+	margin-bottom:0.5em;
+}
+
+#tt-translucence-sites .css_additions {
+	color:green;
+	margin-bottom:0.5em;
+}
+
+#tt-translucence-sites .theme_mods {
+	color:violet;
+	margin-bottom:0.5em;
+}
+
+#tt-translucence-sites .theme_mods_additions {
+	color:purple;
+	margin-bottom:0.5em;
+}
+
+#tt-translucence-sites .vtt_options {
+	color:blue;
+}
+
+#tt-translucence-sites .site {
+	border-bottom:solid 3px #666;
+	padding:1em 0em;
+}
+
+#tt-translucence-sites h4 {
+	margin:0;
+}
+
+#tt-translucence-sites .convert-links {
 	border:solid 1px #ccc;
-	padding:0.5em 1em;
-	margin-bottom:1em;
+	padding:0.5em;
+	margin:0.5em 0em;
 }
 
-#tt-sites-list {
-	border:solid 1px green;
-	padding:1em;
+#tt-translucence-sites form {
+	display:inline-block;
 }
 
-#tt-analysis {
-	border:solid 1px red;
-	padding:1em;
-}
-
-#tt-analysis > div {
-	border:solid 1px #ccc;
-	padding:1em;
-}
-
-
+/*
+echo '<div class="stylesheet">'.$site['stylesheet'].' / '.$site['options']['background'].'</div>';
+if( $site['css'] )
+	echo '<div class="css"><pre>'.$site['css'].'</pre></div>';
+echo '<div class="theme_mods"><pre>';
+	var_dump($site['theme_mods']);
+echo '</pre></div>';
+echo '<div class="changes"><pre>'.''.'</pre></div>';
+*/

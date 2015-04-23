@@ -397,7 +397,91 @@ class TT_Model
 	}
 	
 	
-	public function analyze_sites( $admin_page )
+	public function get_translucence_sites()
+	{
+		$sites = wp_get_sites( array( 'limit' => 99999 ) );
+		
+		$keys = array_keys($sites);
+		$tsites = array();
+		
+		foreach( $keys as $key )
+		{
+			$site =& $sites[$key];
+			$site['status'] = true;
+			$site['message'] = '';
+			
+			switch_to_blog( $site['blog_id'] );
+			
+			//
+			// Do not continue if not a translucence theme.
+			//
+			
+			if( get_option('template') != '2010-translucence' )
+			{
+				//unset($sites[$key]);
+				continue;
+			}
+			
+			//
+			// Get Transluence options.
+			//
+			
+			$site['stylesheet'] = get_option('stylesheet');
+			switch( $site['stylesheet'] )
+			{
+				case '2010-translucence':
+					$site['options'] = get_option( '2010_translucence_options' );
+					break;
+				
+				case 'translucence-uncc-minimal-light':
+				case 'translucence-uncc-minimal-dark':
+				case 'translucence-uncc':
+					$site['options'] = get_option( 'translucence_unc_charlotte_options' );
+					break;
+				
+				default:
+					$site['status'] = false;
+					$site['message'] = 'Unknown stylesheet: '.$site['stylesheet'];
+					break;
+				
+			}
+			
+			if( !$site['status'] ) { $tsites[] = $site; restore_current_blog(); continue; }
+			
+			
+			//
+			// Store site data.
+			//
+			
+			$site['url'] = get_bloginfo( 'url' );
+			$site['title'] = get_bloginfo( 'name' );
+			
+			
+			//
+			// Custom css.
+			//
+			
+			$css = Jetpack_Custom_CSS::get_css();
+			$css = preg_replace('!/\*.*?\*/!s', '', $css);
+			$css = preg_replace('/\n\s*\n/', "\n", $css);
+			$site['css'] = $css;
+			
+			
+			//
+			// Get theme mods.
+			//
+			
+			$site['theme_mods'] = get_theme_mods();
+			$tsites[] = $site; 
+			
+			restore_current_blog();
+		}
+		
+		
+		return $tsites;
+	}
+	
+	public function analyze_sites()
 	{
 		// include jetpack css.
 		if( !class_exists('Jetpack_Custom_CSS') )
@@ -406,442 +490,350 @@ class TT_Model
 		if( !post_type_exists('safecss') )
 			Jetpack_Custom_CSS::init();
 		
-		$old_site_url = 'http://clas-incubator-wp.uncc.edu';
 		
-// 		$defaults = array(
-// 			'jon-crane (new template)' 	=> array(
-// 				'blog_id'		=> 445,
-// 				'url'			=> '',
-// 				'stylesheet'	=> 'translucence-uncc-minimal-light',
-// 				'option_key'	=> 'translucence_unc_charlotte_options',
-// 				'options'		=> null,
-// 				'sites'			=> array(),
-// 				'default_sites'	=> array(),
-// 			),
-// 			'elizabeth-r-miller (old template)' 	=> array(
-// 				'blog_id'		=> 341,
-// 				'url'			=> '',
-// 				'stylesheet'	=> 'translucence-uncc-minimal-light',
-// 				'option_key'	=> 'translucence_unc_charlotte_options',
-// 				'options'		=> null,
-// 				'sites'			=> array(),
-// 				'default_sites'	=> array(),
-// 			),
-// 		);
-// 		
-// 		
-// 		$ignore_keys = array(
-// 			'activated-theme',
-// 			'options-mode',
-// 			'revert',
-// 			'variation-type',
-// 			'description-text-padding-top',
-// 			'header-text-padding-top',
-// 			'page-links-display',
-// 			'site-border-shadow',
-// 			'site-hover-border-style',
-// 			'site-border-width',
-// 			'header-image-options',
-// 			'content-width',
-// 			'overall-content-width',
-// 			'overall-right01-width',
-// 			'right01-width',
-// 			'right01-visibility',
-// 			'header-color-hover-rgb',
-// 			'header-highlight-hover-color-rgb',
-// 			'header-highlight-color-rgb',
-// 			'header-opacity',
-// 			'top-highlight-hover-color-rgb',
-// 			'header-block-height',
-// 			'title-box-border-width',
-// 			'headerblock-border-style',
-// 			'headerblock-hover-border-style',
-// 			'site-border-style',
-// 			'description-box-highlight-color-rgb',
-// 			'description-box-color-hover-rgb',
-// 			'description-box-highlight-hover-color-rgb',
-// 			'title-box-color-hover-rgb',
-// 			'title-box-highlight-color-rgb',
-// 			'top-margin-top',
-// 			'top-margin-bottom',
-// 			'menu-width',
-// 			'bottom-highlight-hover-color-rgb',
-// 		);
-// 		
-// 		
-// 		$exempt_sites = array();
-// 		foreach( $defaults as $name => &$options )
-// 		{
-// 			switch_to_blog( $options['blog_id'] );
-// 			
-// 			$options['url'] = get_bloginfo( 'url' );
-// 			
-// 			$options['options'] = get_option( $options['option_key'], array() );
-// 			if( array_key_exists('css', $options['options']) )
-// 				unset( $options['options']['css'] );
-// 			
-// 			restore_current_blog();
-// 			
-// 			$exempt_sites[] = $options['blog_id'];
-// 		}
+		$all_translucence_sites = $this->get_translucence_sites();
+		$all_translucence_variations = array();
 		
 		
-		$sites = $this->get_sites();
-		
-		$count = 0;
-		$no_error_count = 0;
-		foreach( $sites as $site )
+		foreach( $all_translucence_sites as &$site )
 		{
-			if( $site['template'] != '2010-translucence' ) continue;
-			if( $site['stylesheet'] != 'translucence-uncc-minimal-light' ) continue;
-
-			echo '<div><div>'.
-				'<a href="'.$site['url'].'" target="_blank">'.$site['title'].'</a>'.
-				'</div>';
+			if( $site['status'] == false ) continue;
+			
+			// uncc-white  uncc-min-dark  uncc-min-light  uncc-std02  uncc-dark-gray
+			
+			switch( $site['options']['background'] )
+			{
+				case 'uncc-white':
+				case 'uncc-std02':
+					$this->get_changes_for_uncc( $site );
+					break;
 				
-			switch_to_blog( $site['blog_id'] );
-			
-			$css = Jetpack_Custom_CSS::get_css();
-			$css = preg_replace('!/\*.*?\*/!s', '', $css);
-			$css = preg_replace('/\n\s*\n/', "\n", $css);
-			echo '<div style="color:green"><pre>'.$css.'</pre></div>';
-			
-			restore_current_blog();
-			
-			$options = $site['options'];
-
-			if( strtolower($options['background_color']) != '#ffffff' )
-			{
-				echo '<div style="color:#369">background_color => '.strtolower($options['background_color']).'</div>';
+				case 'uncc-min-dark':
+				case 'uncc-dark-gray':
+					$this->get_changes_for_dark( $site );
+					break;
+				
+				case 'uncc-min-light':
+				case 'translucence-gray-white':
+					$this->get_changes_for_light( $site );
+					break;
 			}
-
-			if( strtolower($options['background_image_file']) != 'background-white.png' )
-			{
-				$position = explode($options['background_position']);
-				echo '<div style="color:#369">background_image_file => '.strtolower($options['background_image_file']).'</div>';
-				echo '<div style="color:#369">background_position => '.strtolower('$position[0]').'</div>';
-				echo '<div style="color:#369">background_attachment => '.strtolower($options['background_attachment']).'</div>';
-			}
+			
+			if( !array_key_exists($site['options']['background'], $all_translucence_variations) )
+				$all_translucence_variations[$site['options']['background']] = array();
+			
+			$all_translucence_variations[$site['options']['background']][] = $site;
+		}
 		
-			if( strtolower($options['textcolor']) != '#333333' )
-			{
-				echo '<div style="color:blue">textcolor => '.strtolower($options['textcolor']).'</div>';
-			}
-
-			if( strtolower($options['linkcolor']) != '#003366' )
-			{
-				echo '<div style="color:blue">linkcolor => '.strtolower($options['linkcolor']).'</div>';
-			}
-
-			if( strtolower($options['title-box-visibility']) == 'none' )
-			{
-				echo '<div style="color:blue">title-box-visibility => '.strtolower($options['title-box-visibility']).'</div>';
-			}
-
-			if( strtolower($options['title-box-color']) != '#000000' )
-			{
-				echo '<div style="color:blue">title-box-color => '.strtolower($options['title-box-color']).'</div>';
-			}
-
-			if( floatval($options['title-box-opacity']) != 0.6 )
-			{
-				echo '<div style="color:blue">title-box-opacity => '.strtolower($options['title-box-opacity']).'</div>';
-			}
 		
-			if( strtolower($options['title-box-link-color']) != '#ffffff' )
+		return array(
+			'sites'			=> $all_translucence_sites,
+			'variations'	=> $all_translucence_variations,
+		);
+	}
+	
+	
+	public function get_changes_for_uncc( &$site )
+	{
+		$site['css_additions'] = array();
+		$site['theme_mods_additions'] = array();
+		$site['vtt_options_additions'] = array();
+		$options = $site['options'];
+		
+		$theme_mod_keys_to_copy = array(
+			'header_image',
+			'header_image_data',
+		);
+		
+		foreach( $theme_mod_keys_to_copy as $copy_key )
+		{
+			if( array_key_exists($copy_key, $site['theme_mods']) )
 			{
-				echo '<div style="color:blue">title-box-link-color => '.strtolower($options['title-box-link-color']).'</div>';
+				$site['theme_mods_additions'][$copy_key] = $site['theme_mods'][$copy_key];
+			}
+		}
+
+		if( is_array($site['theme_mods']) &&
+		    array_key_exists('nav_menu_locations', $site['theme_mods']) &&
+		    is_array($site['theme_mods']['nav_menu_locations']) &&
+		    array_key_exists('primary', $site['theme_mods']['nav_menu_locations']) )
+		{
+			$site['theme_mods_additions']['nav_menu_locations'] = array(
+				'header-navigation' => $site['theme_mods']['nav_menu_locations']['primary']
+			);
+		}
+	}
+	
+	
+	public function get_changes_for_dark( &$site )
+	{
+		$site['css_additions'] = array();
+		$site['theme_mods_additions'] = array();
+		$site['vtt_options_additions'] = array();
+		$options = $site['options'];
+		
+		$theme_mod_keys_to_copy = array(
+			'background_color',
+			'header_image',
+			'header_image_data',
+			'background_image',
+			'background_repeat',
+			'background_position_x',
+			'background_attachment',
+		);
+		
+		foreach( $theme_mod_keys_to_copy as $copy_key )
+		{
+			if( array_key_exists($copy_key, $site['theme_mods']) )
+			{
+				$site['theme_mods_additions'][$copy_key] = $site['theme_mods'][$copy_key];
+			}
+		}
+
+		if( is_array($site['theme_mods']) &&
+		    array_key_exists('nav_menu_locations', $site['theme_mods']) &&
+		    is_array($site['theme_mods']['nav_menu_locations']) &&
+		    array_key_exists('primary', $site['theme_mods']['nav_menu_locations']) )
+		{
+			$site['theme_mods_additions']['nav_menu_locations'] = array(
+				'header-navigation' => $site['theme_mods']['nav_menu_locations']['primary']
+			);
+		}
+	}	
+	
+	public function get_changes_for_light( &$site )
+	{
+		$site['css_additions'] = array();
+		$site['theme_mods_additions'] = array();
+		$site['vtt_options_additions'] = array();
+		$options = $site['options'];
+		
+		if( strtolower($options['background_color']) != '#ffffff' )
+		{
+			$site['theme_mods_additions']['background_color'] = str_replace( '#', '', $options['background_color'] );
+		}
+
+		if( strtolower($options['background_image_file']) != 'background-white.png' )
+		{
+			if( array_key_exists('background_image', $options) )
+				$site['theme_mods_additions']['background_image'] = $options['background_image'];
+
+			if( array_key_exists('background_position', $options) )
+			{
+				$position = explode(' ', $options['background_position']);
+				$site['theme_mods_additions']['background_position'] = $position[0];
 			}
 			
-			if( strtolower($options['description-box-visibility']) == 'none' )
-			{
-				echo '<div style="color:blue">description-box-visibility => '.strtolower($options['description-box-visibility']).'</div>';
-			}
-
-			if( strtolower($options['description-box-color']) != '#000000' )
-			{
-				echo '<div style="color:blue">description-box-color => '.strtolower($options['description-box-color']).'</div>';
-			}
-
-			if( floatval($options['description-box-opacity']) != 0.6 )
-			{
-				echo '<div style="color:blue">description-box-opacity => '.strtolower($options['description-box-opacity']).'</div>';
-			}
+			if( array_key_exists('background_attachment', $options) )
+				$site['theme_mods_additions']['background_attachment'] = $options['background_attachment'];
+		}
 		
-			if( strtolower($options['description-box-link-color']) != '#ffffff' )
+		$theme_mod_keys_to_copy = array(
+			'background_color',
+			'header_image',
+			'header_image_data',
+			'background_image',
+			'background_repeat',
+			'background_position_x',
+			'background_attachment',
+		);
+		
+		foreach( $theme_mod_keys_to_copy as $copy_key )
+		{
+			if( array_key_exists($copy_key, $site['theme_mods']) )
 			{
-				echo '<div style="color:blue">description-box-link-color => '.strtolower($options['description-box-link-color']).'</div>';
+				$site['theme_mods_additions'][$copy_key] = $site['theme_mods'][$copy_key];
 			}
+		}
+		
+		// 
+		// 
+		// 
+		
+		if( strtolower($options['textcolor']) != '#333333' )
+		{
+			$site['css_additions']['textcolor'] = strtolower($options['textcolor']);
+		}
 
+		if( strtolower($options['linkcolor']) != '#003366' )
+		{
+			$site['css_additions']['linkcolor'] = strtolower($options['linkcolor']);
+		}
+		
+		if( strtolower($options['title-box-visibility']) == 'none' )
+		{
+			$site['css_additions']['linkcolor'] = strtolower($options['title-box-visibility']);
+		}
+
+		if( strtolower($options['title-box-color']) != '#000000' ||
+			floatval($options['title-box-opacity']) != 1 )
+		{
+			$site['css_additions']['title-box-bg-color'] = $this->get_background_color( strtolower($options['title-box-color']), floatval($options['title-box-opacity']) );
+		}
+
+		if( strtolower($options['site-title-color']) != '#ffffff' )
+		{
+			$site['css_additions']['site-title-color'] = strtolower($options['site-title-color']);
+		}
+
+		if( strtolower($options['description-box-visibility']) == 'none' )
+		{
+			$site['css_additions']['description-box-visibility'] = strtolower($options['description-box-visibility']);
+		}
+
+		if( strtolower($options['description-box-color']) != '#000000' ||
+			floatval($options['description-box-opacity']) != 1 )
+		{
+			$site['css_additions']['description-box-bg-color'] = $this->get_background_color( strtolower($options['description-box-color']), floatval($options['description-box-opacity']) );
+		}
+
+		if( strtolower($options['site-description-color']) != '#ffffff' )
+		{
+			$site['css_additions']['site-description-color'] = strtolower($options['site-description-color']);
+		}
+
+		if( strtolower($options['header-text-display']) != 'middle' )
+		{
 			switch( strtolower($options['header-text-display']) )
 			{
 				case 'top':
 				case 'above':
-					echo '<div style="color:#369">title-position => hleft vtop</div>';
+					$site['vtt_options_additions']['header-text-display'] = 'hleft vtop';
 					break;
-			
+				
 				case 'bottom':
-					echo '<div style="color:#369">title-position => hleft vbottom</div>';
+					$site['vtt_options_additions']['header-text-display'] = 'hleft vbottom';
 					break;
-			
+				
 				case 'hide':
-					echo '<div style="color:blue">title-position => hide</div>';
+					$site['css_additions']['title-box-display'] = 'none';
 					break;
 
 				case 'middle':
 				default:
 					break;
 			}
+		}
 
-			if( strtolower($options['site-border-style']) == 'none' )
-			{
-				echo '<div style="color:blue">site-border-style => '.strtolower($options['site-border-style']).'</div>';
-			}
+		if( strtolower($options['site-border-style']) == 'none' )
+		{
+			$site['css_additions']['site-border-style'] = strtolower($options['site-border-style']);
+		}
 
-			if( strtolower($options['site-border-color']) != '#cccccc' )
-			{
-				echo '<div style="color:blue">site-border-color => '.strtolower($options['site-border-color']).'</div>';
-			}
+		if( strtolower($options['site-border-color']) != '#cccccc' )
+		{
+			$site['css_additions']['site-border-color'] = strtolower($options['site-border-color']);
+		}
+
+		if( strtolower($options['site-color']) != '#ffffff' ||
+			floatval($options['site-opacity']) != 1 )
+		{
+			$site['css_additions']['site-bg-color'] = $this->get_background_color( strtolower($options['site-color']), floatval($options['site-opacity']) );
+		}
+
+		if( strtolower($options['header-border-style']) != 'none' )
+		{
+			$site['css_additions']['header-border-style'] = strtolower($options['header-border-style']);
+		}
+
+		if( strtolower($options['header-color']) != '#ffffff' ||
+			floatval($options['header-opacity']) != 1 )
+		{
+			$site['css_additions']['header-bg-color'] = $this->get_background_color( strtolower($options['header-color']), floatval($options['header-opacity']) );
+		}
 		
-			if( strtolower($options['site-color']) != '#ffffff' )
-			{
-				echo '<div style="color:blue">site-color => '.strtolower($options['site-color']).'</div>';
-			}
+		if( strtolower($options['cat-links-visibility']) == 'none' )
+		{
+			$site['css_additions']['cat-links-visibility'] = strtolower($options['cat-links-visibility']);
+		}
+
+		if( strtolower($options['cat-links-border-style']) == 'none' )
+		{
+			$site['css_additions']['cat-links-border-style'] = strtolower($options['cat-links-border-style']);
+		}
+
+		if( strtolower($options['cat-links-border-color']) != '#cccccc' )
+		{
+			$site['css_additions']['cat-links-border-color'] = strtolower($options['cat-links-border-color']);
+		}
+
+		if( strtolower($options['cat-links-link-color']) != '#003366' )
+		{
+			$site['css_additions']['cat-links-link-color'] = strtolower($options['cat-links-link-color']);
+		}
+
+		if( strtolower($options['cat-links-color']) != '#f6f6f6' ||
+			floatval($options['cat-links-opacity']) != 1 )
+		{
+			$site['css_additions']['cat-links-bg-color'] = $this->get_background_color( strtolower($options['cat-links-color']), floatval($options['cat-links-opacity']) );
+		}
+
+		if( strtolower($options['tag-links-visibility']) == 'none' )
+		{
+			$site['css_additions']['tag-links-visibility'] = strtolower($options['tag-links-visibility']);
+		}
+
+		if( strtolower($options['tag-links-border-style']) == 'none' )
+		{
+			$site['css_additions']['tag-links-border-style'] = strtolower($options['tag-links-border-style']);
+		}
+
+		if( strtolower($options['tag-links-border-color']) != '#cccccc' )
+		{
+			$site['css_additions']['tag-links-border-color'] = strtolower($options['tag-links-border-color']);
+		}
+
+		if( strtolower($options['tag-links-link-color']) != '#003366' )
+		{
+			$site['css_additions']['tag-links-link-color'] = strtolower($options['tag-links-link-color']);
+		}
 		
-			if( intval($options['site-opacity']) != 1 )
-			{
-				echo '<div style="color:blue">site-opacity => '.strtolower($options['site-opacity']).'</div>';
-			}
-
-			if( strtolower($options['header-border-style']) != 'none' )
-			{
-				echo '<div style="color:blue">header-border-style => '.strtolower($options['header-border-style']).'</div>';
-			}
+		if( strtolower($options['tag-links-color']) != '#fffacd' ||
+			floatval($options['tag-links-opacity']) != 1 )
+		{
+			$site['css_additions']['tag-links-bg-color'] = $this->get_background_color( strtolower($options['tag-links-color']), floatval($options['tag-links-opacity']) );
+		}
 		
-			if( strtolower($options['header-color']) != '#ffffff' )
-			{
-				echo '<div style="color:blue">header-color => '.strtolower($options['header-color']).'</div>';
-			}
+		if( is_array($site['theme_mods']) &&
+		    array_key_exists('nav_menu_locations', $site['theme_mods']) &&
+		    is_array($site['theme_mods']['nav_menu_locations']) &&
+		    array_key_exists('primary', $site['theme_mods']['nav_menu_locations']) )
+		{
+			$site['theme_mods_additions']['nav_menu_locations'] = array(
+				'header-navigation' => $site['theme_mods']['nav_menu_locations']['primary']
+			);
+		}
+	}
+	
+	
+	private function get_background_color( $hex, $opacity )
+	{
+		if( $opacity == 0 ) return 'transparent';
+
+		list( $r, $g, $b ) = $this->hex2rgb( $hex );
 		
-			if( intval($options['header-opacity']) != 1 )
-			{
-				echo '<div style="color:blue">header-opacity => '.strtolower($options['header-opacity']).'</div>';
-			}
+		return "$hex  /  rgba( $r, $g, $b, $opacity )";
+	}
+
+	public function hex2rgb( $hex )
+	{
+		$hex = str_replace( "#", "", $hex );
 		
-			if( strtolower($options['cat-links-visibility']) == 'none' )
-			{
-				echo '<div style="color:blue">cat-links-visibility => '.strtolower($options['cat-links-visibility']).'</div>';
-			}
-
-			if( strtolower($options['cat-links-border-style']) == 'none' )
-			{
-				echo '<div style="color:blue">cat-links-border-style => '.strtolower($options['cat-links-border-style']).'</div>';
-			}
-
-			if( strtolower($options['cat-links-border-color']) != '#cccccc' )
-			{
-				echo '<div style="color:blue">cat-links-border-color => '.strtolower($options['cat-links-border-color']).'</div>';
-			}
-
-			if( strtolower($options['cat-links-link-color']) != '#003366' )
-			{
-				echo '<div style="color:blue">cat-links-link-color => '.strtolower($options['cat-links-link-color']).'</div>';
-			}
-
-			if( strtolower($options['cat-links-color']) != '#f6f6f6' )
-			{
-				echo '<div style="color:blue">cat-links-color => '.strtolower($options['cat-links-color']).'</div>';
-			}
-
-			if( floatval($options['cat-links-opacity']) != 1 )
-			{
-				echo '<div style="color:blue">cat-links-opacity => '.strtolower($options['cat-links-opacity']).'</div>';
-			}
-
-			if( strtolower($options['tag-links-visibility']) == 'none' )
-			{
-				echo '<div style="color:blue">tag-links-visibility => '.strtolower($options['tag-links-visibility']).'</div>';
-			}
-
-			if( strtolower($options['tag-links-border-style']) == 'none' )
-			{
-				echo '<div style="color:blue">tag-links-border-style => '.strtolower($options['tag-links-border-style']).'</div>';
-			}
-
-			if( strtolower($options['tag-links-border-color']) != '#cccccc' )
-			{
-				echo '<div style="color:blue">tag-links-border-color => '.strtolower($options['tag-links-border-color']).'</div>';
-			}
-
-			if( strtolower($options['tag-links-link-color']) != '#003366' )
-			{
-				echo '<div style="color:blue">tag-links-link-color => '.strtolower($options['tag-links-link-color']).'</div>';
-			}
+		if( strlen($hex) == 3 )
+		{
+			$r = hexdec( substr($hex,0,1).substr($hex,0,1) );
+			$g = hexdec( substr($hex,1,1).substr($hex,1,1) );
+			$b = hexdec( substr($hex,2,1).substr($hex,2,1) );
+		}
+		else
+		{
+			$r = hexdec( substr($hex,0,2) );
+			$g = hexdec( substr($hex,2,2) );
+			$b = hexdec( substr($hex,4,2) );
+		}
 		
-			if( strtolower($options['tag-links-color']) != '#fffacd' )
-			{
-				echo '<div style="color:blue">tag-links-color => '.strtolower($options['tag-links-color']).'</div>';
-			}
-
-			if( floatval($options['tag-links-opacity']) != 1 )
-			{
-				echo '<div style="color:blue">tag-links-opacity => '.strtolower($options['tag-links-opacity']).'</div>';
-			}
-
-			$path = parse_url($site['url'], PHP_URL_PATH);
-		
-			echo '<div class="convert-links">';
-			
-			echo '&nbsp;<a href="'.$site['url'].'" target="_blank">Convert Site</a>&nbsp;';
-			
-			$admin_page->form_start( 'convert-site' );
-			?>
-			<input type="hidden" name="blog_id" value="<?php echo $site['blog_id']; ?>" />
-			<?php
-			$admin_page->create_ajax_submit_button(
-				'Convert', 
-				'convert-site', 
-				null,
-				null,
-				'convert_site_start',
-				'convert_site_end',
-				'convert_site_loop_start',
-				'convert_site_loop_end' );
-			$admin_page->form_end();
-			
-			echo '&nbsp;<a href="'.$old_site_url.$path.'" target="_blank">New Site</a>&nbsp;';
-			
-			echo '</div>';
-			echo '</div>';
-		
-/*		<button type="button" 
-		        class="apl-ajax-button"
-		        page="<?php echo $this->handler->get_page_name(); ?>"
-		        tab="<?php echo $this->handler->get_tab_name(); ?>"
-		        action="<?php echo $action; ?>"
-		        form="<?php echo $form_classes; ?>"
-		        input="<?php echo $input_names; ?>"
-		        cb_start="<?php echo $cb_start; ?>"
-		        cb_end="<?php echo $cb_end; ?>"
-		        cb_loop_start="<?php echo $cb_loop_start; ?>"
-		        cb_loop_end="<?php echo $cb_loop_end; ?>"
-		        nonce="<?php echo $nonce; ?>">
-		    <?php echo $text; ?>
-		</button>
-*/
-
-/*			if( in_array($site['blog_id'], $exempt_sites) ) continue;
-						
-// 			apl_print($site['options']);
-			$site_url = str_replace( 'https', 'http', $site['url'] );
-			
-			// display:
-			$print_html = false;
-			$html = '<div>';
-			$html .= '<div class="site-name"><a href="'.$site['url'].'">'.$site['title'].'</a></div>';
-			
-			$count_for_this_site = false;
-			foreach( $defaults as $name => &$options )
-			{
-				if( $options['stylesheet'] !== $site['stylesheet'] ) continue;
-				if( $options['option_key'] !== $site['option_key'] ) continue;
-				
-// 				apl_print($options);
-				$option_url = str_replace( 'https', 'http', $options['url'] );
-				$options['sites'][] = $site;
-
-				// display:
-				$h = '';
-				$h .= '<div>Options URL: '.$option_url.'</div>';
-				$h .= '<div>Site URL: '.$site_url.'</div>';
-					
-				$num_of_problems = 0;
-				$is_default = true;
-				foreach( $options['options'] as $name => $value )
-				{
-					if( !empty($value) || ($value === 0) || ($value === '0') )
-					{
-						if( $site['options'][$name] === '' ) continue;
-						if( $site['options'][$name] === false ) continue;
-						if( $site['options'][$name] === null ) continue;
-					}
-					
-					if( strpos( $name, 'ie' ) !== false ) continue;
-					if( strpos( $name, 'padding' ) !== false ) continue;
-					if( strpos( $name, 'header-border' ) !== false ) continue;
-					if( strpos( $name, 'top-color' ) !== false ) continue;
-					if( strpos( $name, 'left01-' ) !== false ) continue; 
-					if( strpos( $name, 'right01-' ) !== false ) continue; 
-					if( strpos( $name, 'right02-' ) !== false ) continue; 
-					if( strpos( $name, 'entry-link-' ) !== false ) continue;
-					if( strpos( $name, 'border-width' ) !== false ) continue;
-					if( strpos( $name, 'content-margin-' ) !== false ) continue;
-					
-					if( in_array($name, $ignore_keys) ) continue;
-					
-					$dov = str_replace( 'https', 'http', $value );
-					$dov = str_replace( $option_url, '', $dov );
-					$dov = strtolower( $dov );
-
-					$sov = str_replace( 'https', 'http', $site['options'][$name] );
-					$sov = str_replace( $site_url, '', $sov );
-					$sov = strtolower( $sov );
-					
-					
-					$num = '';
-					if( $sov != $dov )
-					{
-						$num_of_problems++;
-						$is_default = false;
-						$color = 'red';
-						$num = $num_of_problems;
-						$h .= '<div style="color:'.$color.'">';
-						$h .= '<span style="width:2em;display:inline-block;text-align:right;margin-right:0.5em;">'.$num."</span>".$name.":   '".$dov."'   ===>   '".$sov."'";
-						$h .= '</div>';
-					}
-					else
-					{
-						$color = 'green';
-					}
-					
-					// display:
-// 					echo '<div style="color:'.$color.'">';
-// 					echo '<span style="width:2em;display:inline-block;text-align:right;margin-right:0.5em;">'.$num."</span>".$name.":   '".$dov."'   ===>   '".$sov."'";
-// 					echo '</div>';
-				}
-				
-				if( $num_of_problems < 20 )
-				{
-					if( $count_for_this_site == false )
-					{
-						$count++;
-						$count_for_this_site = true;
-						if( $num_of_problems == 0 )
-							$no_error_count++;
-					}
-					$print_html = true;
-					$html .= $h;
-					$options['default_sites'][] = array( 'site' => $site, 'num_problems' => $num_of_problems );
-				}
-					
-// 				if( $is_default )
-// 					$option['default_sites'][] = $site;
-			}
-
-			// display:
-			$html .= '</div>';
-			
-			if( $print_html ) echo $html;
-*/		}
-		
-/*		?>
-		<div>
-			Number of Site with less than 20 errors: <?php echo $count; ?>
-			Number of Sites with no errors: <?php echo $no_error_count; ?>
-		</div>
-		<?php */
-		
-		return $defaults;
+		$rgb = array( $r, $g, $b );
+		return $rgb; // returns an array with the rgb values
 	}
 	
 }
