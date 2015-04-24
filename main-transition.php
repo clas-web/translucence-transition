@@ -37,85 +37,8 @@ class TTTT_Main
 		if( $new_template !== 'variations-template-theme' ) return;
 		if( $old_template !== '2010-translucence' ) return;
 		
+		update_option( 'tt_transition_complete', '0' );
 		update_option( 'tt_previous_theme', get_option('stylesheet') );
-	}
-	
-	
-	public static function convert_widgets( $previous_theme_mods, &$theme_mods )
-	{
-		$sidebars_widgets = $previous_theme_mods['sidebars_widgets'];
-		$widget_areas = $sidebars_widgets['data'];
-		
-		//
-		// create a new sidebars_widgets array.
-		//
-		
-		$left = array();
-		$right = array();
-		$footer1 = array();
-		$footer2 = array();
-		$footer3 = array();
-		$footer4 = array();
-		
-		if( array_key_exists('primary-widget-area', $widget_areas) )
-		{
-			$right = $widget_areas['primary-widget-area'];
-			unset( $widget_areas['primary-widget-area'] );
-		}
-		
-		if( array_key_exists('secondary-widget-area', $widget_areas) )
-		{
-			$right = array_merge(
-				$right,
-				$widget_areas['secondary-widget-area']
-			);
-			unset( $widget_areas['secondary-widget-area'] );
-		}
-		
-		if( array_key_exists('tertiary-widget-area', $widget_areas) )
-		{
-			$left = $widget_areas['tertiary-widget-area'];
-			unset( $widget_areas['tertiary-widget-area'] );
-		}
-
-		if( array_key_exists('first-footer-widget-area', $widget_areas) )
-		{
-			$footer1 = $widget_areas['first-footer-widget-area'];
-			unset( $widget_areas['first-footer-widget-area'] );
-		}
-
-		if( array_key_exists('second-footer-widget-area', $widget_areas) )
-		{
-			$footer2 = $widget_areas['second-footer-widget-area'];
-			unset( $widget_areas['second-footer-widget-area'] );
-		}
-
-		if( array_key_exists('third-footer-widget-area', $widget_areas) )
-		{
-			$footer3 = $widget_areas['third-footer-widget-area'];
-			unset( $widget_areas['third-footer-widget-area'] );
-		}
-
-		if( array_key_exists('fourth-footer-widget-area', $widget_areas) )
-		{
-			$footer4 = $widget_areas['fourth-footer-widget-area'];
-			unset( $widget_areas['fourth-footer-widget-area'] );
-		}
-		
-		$widget_areas['vtt-left-sidebar'] = $left;
-		$widget_areas['vtt-right-sidebar'] = $right;
-		$widget_areas['vtt-footer-1'] = $footer1;
-		$widget_areas['vtt-footer-2'] = $footer2;
-		$widget_areas['vtt-footer-3'] = $footer3;
-		$widget_areas['vtt-footer-4'] = $footer4;
-		
-		
-		//
-		// update sidebar widgets and delete 2010-transluence sidebar widgets.
-		//
-		
-		$sidebars_widgets['data'] = $widget_areas;
-		$theme_mods['sidebars_widgets'] = $sidebars_widgets;	
 	}
 	
 	
@@ -126,11 +49,19 @@ class TTTT_Main
 		//
 		
 		if( get_option('template') !== 'variations-template-theme' ) return;
-		if( ($previous_theme = get_option('tt_previous_theme')) === false ) return;
+		if( ($previous_theme = get_option('tt_previous_theme')) === false )
+		{
+			update_option( 'tt_transition_complete', '1' );
+			return;
+		}
+		
+		$transition_complete = get_option('tt_transition_complete', '1');
+		if( $transition_complete === '1' ) return;
 		
 		$allowed_themes = array(
 			'translucence-uncc-minimal-light',
-			'translucence-unc-charlotte',
+			'translucence-uncc-minimal-dark',
+			'translucence-uncc',
 		);
 		
 		if( !in_array($previous_theme, $allowed_themes) ) return;
@@ -163,7 +94,10 @@ class TTTT_Main
 		//
 		
 		if( !class_exists('Jetpack_Custom_CSS') )
+		{
+			require_once( ABSPATH . '/wp-content/plugins/jetpack/class.jetpack-user-agent.php' );
 			require_once( ABSPATH . '/wp-content/plugins/jetpack/modules/custom-css/custom-css.php' );
+		}
 		
 		if( !post_type_exists('safecss') )
 			Jetpack_Custom_CSS::init();
@@ -180,10 +114,11 @@ class TTTT_Main
 		//
 		switch( $previous_theme )
 		{
-			case 'translucence-uncc':
+			case '2010-translucence':
 				$options = get_option( '2010_translucence_options' );
 				break;
 			
+			case 'translucence-uncc':
 			case 'translucence-uncc-minimal-dark':
 			case 'translucence-uncc-minimal-light':
 				$options = get_option( 'translucence_unc_charlotte_options' );
@@ -201,6 +136,7 @@ class TTTT_Main
 				case 'uncc-white':
 					$theme_mods['vtt-variation'] = 'uncc-light';
 					break;
+					
 				case 'uncc-std02':
 					$theme_mods['vtt-variation'] = 'uncc';
 					break;
@@ -241,49 +177,90 @@ class TTTT_Main
 		// update database with new css and theme mods.
 		//
 		
+		update_option( 'vtt-variation', $theme_mods['vtt-variation'] );
 		update_option( 'vtt-options', $vtt_options );
 		update_option( 'theme_mods_'.$stylesheet, $theme_mods );
 		Jetpack_Custom_CSS::save( array( 'css' => $css ) );
+		update_option( 'tt_transition_complete', '1' );
 	}
 	
-	
-	public static function hex2rgb( $hex )
+
+	public static function convert_widgets( $previous_theme_mods, &$theme_mods )
 	{
-		$hex = str_replace( "#", "", $hex );
+		$sidebars_widgets = $previous_theme_mods['sidebars_widgets'];
+		$widget_areas = $sidebars_widgets['data'];
 		
-		if( strlen($hex) == 3 )
+		//
+		// create a new sidebars_widgets array.
+		//
+		
+		$left = array();
+		$right = array();
+		$footer1 = array();
+		$footer2 = array();
+		$footer3 = array();
+		$footer4 = array();
+		
+		if( array_key_exists('primary-widget-area', $widget_areas) )
 		{
-			$r = hexdec( substr($hex,0,1).substr($hex,0,1) );
-			$g = hexdec( substr($hex,1,1).substr($hex,1,1) );
-			$b = hexdec( substr($hex,2,1).substr($hex,2,1) );
-		}
-		else
-		{
-			$r = hexdec( substr($hex,0,2) );
-			$g = hexdec( substr($hex,2,2) );
-			$b = hexdec( substr($hex,4,2) );
+			$right = $widget_areas['primary-widget-area'];
 		}
 		
-		$rgb = array( $r, $g, $b );
-		return $rgb; // returns an array with the rgb values
-	}
-	
-	
-	public static function background_color( $hex, $opacity )
-	{
-		if( $opacity == 0 )
+		if( array_key_exists('secondary-widget-area', $widget_areas) )
 		{
-			return "background-color: transparent";
+			$right = array_merge(
+				$right,
+				$widget_areas['secondary-widget-area']
+			);
+		}
+		
+		if( array_key_exists('tertiary-widget-area', $widget_areas) )
+		{
+			$left = $widget_areas['tertiary-widget-area'];
 		}
 
-		list( $r, $g, $b ) = TTTT_Main::hex2rgb( $hex );
+		if( array_key_exists('first-footer-widget-area', $widget_areas) )
+		{
+			$footer1 = $widget_areas['first-footer-widget-area'];
+		}
+
+		if( array_key_exists('second-footer-widget-area', $widget_areas) )
+		{
+			$footer2 = $widget_areas['second-footer-widget-area'];
+		}
+
+		if( array_key_exists('third-footer-widget-area', $widget_areas) )
+		{
+			$footer3 = $widget_areas['third-footer-widget-area'];
+		}
+
+		if( array_key_exists('fourth-footer-widget-area', $widget_areas) )
+		{
+			$footer4 = $widget_areas['fourth-footer-widget-area'];
+		}
 		
-		return "
-			background-color: $hex;
-			background-color: rgba( $r, $g, $b, $opacity );
-		";
+		$new_widget_areas = array(
+			'vtt-left-sidebar' 		=> $left,
+			'vtt-right-sidebar'		=> $right,
+			'vtt-footer-1' 			=> $footer1,
+			'vtt-footer-2' 			=> $footer2,
+			'vtt-footer-3' 			=> $footer3,
+			'vtt-footer-4' 			=> $footer4,
+		);
+		
+		
+// 		echo '<pre>';
+// 		var_dump($widget_areas);
+// 		var_dump($new_widget_areas);
+// 		echo '</pre>';
+		
+		//
+		// update sidebar widgets.
+		//
+		
+		$sidebars_widgets['data'] = $new_widget_areas;
+		$theme_mods['sidebars_widgets'] = $sidebars_widgets;	
 	}
-	
 	
 	
 	public static function get_uncc_changes( &$css, &$previous_theme_mods, &$theme_mods, &$vtt_options )
@@ -728,6 +705,45 @@ class TTTT_Main
 			);
 		}		
 	}
+
+
+	public static function hex2rgb( $hex )
+	{
+		$hex = str_replace( "#", "", $hex );
+		
+		if( strlen($hex) == 3 )
+		{
+			$r = hexdec( substr($hex,0,1).substr($hex,0,1) );
+			$g = hexdec( substr($hex,1,1).substr($hex,1,1) );
+			$b = hexdec( substr($hex,2,1).substr($hex,2,1) );
+		}
+		else
+		{
+			$r = hexdec( substr($hex,0,2) );
+			$g = hexdec( substr($hex,2,2) );
+			$b = hexdec( substr($hex,4,2) );
+		}
+		
+		$rgb = array( $r, $g, $b );
+		return $rgb; // returns an array with the rgb values
+	}
+	
+	
+	public static function background_color( $hex, $opacity )
+	{
+		if( $opacity == 0 )
+		{
+			return "background-color: transparent";
+		}
+
+		list( $r, $g, $b ) = TTTT_Main::hex2rgb( $hex );
+		
+		return "
+			background-color: $hex;
+			background-color: rgba( $r, $g, $b, $opacity );
+		";
+	}
+	
 	
 }
 endif;
