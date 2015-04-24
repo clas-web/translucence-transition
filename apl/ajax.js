@@ -84,8 +84,8 @@ jQuery(document).ready(
 				var form_input = $(current_form).serializeArray();
 				for( var i in form_input )
 				{
-					var fi = form_input[i];
-					data['input'][fi.name] = fi.value;
+					var finput = form_input[i];
+					data['input'][finput.name] = finput.value;
 				}
 			}
 			
