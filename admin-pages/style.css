@@ -19,11 +19,17 @@
 	text-decoration:underline;
 }
 
+a.link-down,
+a.link-site {
+	padding:0.25em 0.50em;
+}
+
 #tt-translucence-sites .stylesheet {
 	color:#333;
 	margin-bottom:0.5em;
 }
 
+#tt-translucence-sites .widget_area_warnings,
 #tt-translucence-sites .css {
 	color:red;
 	margin-bottom:0.5em;

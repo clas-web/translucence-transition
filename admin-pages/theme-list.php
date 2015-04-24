@@ -122,7 +122,12 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 			echo '<h4 id="variation-'.$variation.'">'.$variation.' ('.count($sites).')</h4>';
 			foreach( $sites as $site )
 			{
-				echo '<a href="#blog-'.$site['blog_id'].'">'.$site['title'].'</a><br/>';
+				echo '
+					<div class="variation-site-link">
+					<a class="link-down" href="#blog-'.$site['blog_id'].'">&darr;</a>
+					<a class="link-site" href="'.$site['url'].'" target="_blank">'.$site['title'].'</a>
+					</div>
+				';
 			}
 		}
 		
@@ -148,7 +153,8 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 			echo '<div class="stylesheet">'.$site['stylesheet'].' / '.$site['options']['background'].'</div>';
 
 			echo '<div class="convert-links">';
-			
+
+/*			
 				$this->form_start( 'convert-site' );
 				
 				?>
@@ -166,12 +172,20 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 					'convert_site_loop_end' );
 				
 				$this->form_end();
-				
+*/				
+				echo '&nbsp;<a href="'.$site['url'].'/wp-admin/themes.php" target="_blank">Themes</a>&nbsp;';
 				echo '&nbsp;<a href="'.$old_site_url.$site['path'].'" target="_blank">Original Site</a>&nbsp;';
 				echo '&nbsp;<a href="'.$site['url'].'" target="_blank">Converted Site</a>&nbsp;';
 			
 			echo '</div>';
 			
+			if( $site['widget_area_warnings'] )
+				echo '
+					<div class="widget_area_warnings">
+						<h5>Widget Area Warnings</h5>
+						<pre>'.$this->print_array($site['widget_area_warnings']).'</pre>
+					</div>
+				';
 			if( $site['css'] )
 				echo '
 					<div class="css">

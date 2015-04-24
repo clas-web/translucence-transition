@@ -371,6 +371,7 @@ class TT_Model
 			unset( $site['options']['css'] );
 		
 		$site['options'] = json_encode( $site['options'] );
+		$site['sidebars_widgets'] = get_option( 'sidebars_widgets' );
 		
 		restore_current_blog();
 		
@@ -472,6 +473,7 @@ class TT_Model
 			//
 			
 			$site['theme_mods'] = get_theme_mods();
+			$site['sidebars_widgets'] = get_option( 'sidebars_widgets' );
 			$tsites[] = $site; 
 			
 			restore_current_blog();
@@ -485,7 +487,10 @@ class TT_Model
 	{
 		// include jetpack css.
 		if( !class_exists('Jetpack_Custom_CSS') )
+		{
+			require_once( ABSPATH . '/wp-content/plugins/jetpack/class.jetpack-user-agent.php' );
 			require_once( ABSPATH . '/wp-content/plugins/jetpack/modules/custom-css/custom-css.php' );
+		}
 		
 		if( !post_type_exists('safecss') )
 			Jetpack_Custom_CSS::init();
@@ -499,8 +504,11 @@ class TT_Model
 		{
 			if( $site['status'] == false ) continue;
 			
-			// uncc-white  uncc-min-dark  uncc-min-light  uncc-std02  uncc-dark-gray
-			
+			$site['widget_area_warnings'] = array();
+			$site['css_additions'] = array();
+			$site['theme_mods_additions'] = array();
+			$site['vtt_options_additions'] = array();
+
 			switch( $site['options']['background'] )
 			{
 				case 'uncc-white':
@@ -515,10 +523,14 @@ class TT_Model
 				
 				case 'uncc-min-light':
 				case 'translucence-gray-white':
+				default:
 					$this->get_changes_for_light( $site );
 					break;
 			}
 			
+			$this->get_menu( $site );
+			$this->find_hidden_widgets( $site );
+
 			if( !array_key_exists($site['options']['background'], $all_translucence_variations) )
 				$all_translucence_variations[$site['options']['background']] = array();
 			
@@ -535,77 +547,42 @@ class TT_Model
 	
 	public function get_changes_for_uncc( &$site )
 	{
-		$site['css_additions'] = array();
-		$site['theme_mods_additions'] = array();
-		$site['vtt_options_additions'] = array();
-		$options = $site['options'];
-		
-		$theme_mod_keys_to_copy = array(
-			'header_image',
-			'header_image_data',
-		);
-		
-		foreach( $theme_mod_keys_to_copy as $copy_key )
-		{
-			if( array_key_exists($copy_key, $site['theme_mods']) )
-			{
-				$site['theme_mods_additions'][$copy_key] = $site['theme_mods'][$copy_key];
-			}
-		}
-
-		if( is_array($site['theme_mods']) &&
-		    array_key_exists('nav_menu_locations', $site['theme_mods']) &&
-		    is_array($site['theme_mods']['nav_menu_locations']) &&
-		    array_key_exists('primary', $site['theme_mods']['nav_menu_locations']) )
-		{
-			$site['theme_mods_additions']['nav_menu_locations'] = array(
-				'header-navigation' => $site['theme_mods']['nav_menu_locations']['primary']
-			);
-		}
+		$this->get_theme_mods( $site, false );
 	}
 	
 	
 	public function get_changes_for_dark( &$site )
 	{
-		$site['css_additions'] = array();
-		$site['theme_mods_additions'] = array();
-		$site['vtt_options_additions'] = array();
 		$options = $site['options'];
-		
-		$theme_mod_keys_to_copy = array(
-			'background_color',
-			'header_image',
-			'header_image_data',
-			'background_image',
-			'background_repeat',
-			'background_position_x',
-			'background_attachment',
-		);
-		
-		foreach( $theme_mod_keys_to_copy as $copy_key )
+
+		if( strtolower($options['header-text-display']) != 'middle' )
 		{
-			if( array_key_exists($copy_key, $site['theme_mods']) )
+			switch( strtolower($options['header-text-display']) )
 			{
-				$site['theme_mods_additions'][$copy_key] = $site['theme_mods'][$copy_key];
+				case 'top':
+				case 'above':
+					$site['vtt_options_additions']['header-text-display'] = 'hleft vtop';
+					break;
+				
+				case 'bottom':
+					$site['vtt_options_additions']['header-text-display'] = 'hleft vbottom';
+					break;
+				
+				case 'hide':
+					$site['css_additions']['title-box-display'] = 'none';
+					break;
+
+				case 'middle':
+				default:
+					break;
 			}
 		}
-
-		if( is_array($site['theme_mods']) &&
-		    array_key_exists('nav_menu_locations', $site['theme_mods']) &&
-		    is_array($site['theme_mods']['nav_menu_locations']) &&
-		    array_key_exists('primary', $site['theme_mods']['nav_menu_locations']) )
-		{
-			$site['theme_mods_additions']['nav_menu_locations'] = array(
-				'header-navigation' => $site['theme_mods']['nav_menu_locations']['primary']
-			);
-		}
+		
+		$this->get_theme_mods( $site, true );
 	}	
 	
 	public function get_changes_for_light( &$site )
 	{
-		$site['css_additions'] = array();
-		$site['theme_mods_additions'] = array();
-		$site['vtt_options_additions'] = array();
 		$options = $site['options'];
 		
 		if( strtolower($options['background_color']) != '#ffffff' )
@@ -628,27 +605,7 @@ class TT_Model
 				$site['theme_mods_additions']['background_attachment'] = $options['background_attachment'];
 		}
 		
-		$theme_mod_keys_to_copy = array(
-			'background_color',
-			'header_image',
-			'header_image_data',
-			'background_image',
-			'background_repeat',
-			'background_position_x',
-			'background_attachment',
-		);
-		
-		foreach( $theme_mod_keys_to_copy as $copy_key )
-		{
-			if( array_key_exists($copy_key, $site['theme_mods']) )
-			{
-				$site['theme_mods_additions'][$copy_key] = $site['theme_mods'][$copy_key];
-			}
-		}
-		
-		// 
-		// 
-		// 
+		$this->get_theme_mods( $site, true );
 		
 		if( strtolower($options['textcolor']) != '#333333' )
 		{
@@ -793,16 +750,6 @@ class TT_Model
 		{
 			$site['css_additions']['tag-links-bg-color'] = $this->get_background_color( strtolower($options['tag-links-color']), floatval($options['tag-links-opacity']) );
 		}
-		
-		if( is_array($site['theme_mods']) &&
-		    array_key_exists('nav_menu_locations', $site['theme_mods']) &&
-		    is_array($site['theme_mods']['nav_menu_locations']) &&
-		    array_key_exists('primary', $site['theme_mods']['nav_menu_locations']) )
-		{
-			$site['theme_mods_additions']['nav_menu_locations'] = array(
-				'header-navigation' => $site['theme_mods']['nav_menu_locations']['primary']
-			);
-		}
 	}
 	
 	
@@ -834,6 +781,89 @@ class TT_Model
 		
 		$rgb = array( $r, $g, $b );
 		return $rgb; // returns an array with the rgb values
+	}
+	
+	
+	private function get_menu( &$site )
+	{
+		if( is_array($site['theme_mods']) &&
+		    array_key_exists('nav_menu_locations', $site['theme_mods']) &&
+		    is_array($site['theme_mods']['nav_menu_locations']) &&
+		    array_key_exists('primary', $site['theme_mods']['nav_menu_locations']) )
+		{
+			$site['theme_mods_additions']['nav_menu_locations'] = array(
+				'header-navigation' => $site['theme_mods']['nav_menu_locations']['primary']
+			);
+		}
+	}
+	
+	
+	private function get_theme_mods( &$site, $get_background_theme_mods = false )
+	{
+		$theme_mod_keys_to_copy = array(
+			'header_image',
+			'header_image_data',
+		);
+		
+		if( $get_background_theme_mods )
+		{
+			$theme_mod_keys_to_copy = array_merge(
+				$theme_mod_keys_to_copy,
+				array(
+					'background_color',
+					'background_image',
+					'background_repeat',
+					'background_position_x',
+					'background_attachment',
+				)
+			);
+		}
+		
+		foreach( $theme_mod_keys_to_copy as $copy_key )
+		{
+			if( array_key_exists($copy_key, $site['theme_mods']) )
+			{
+				$site['theme_mods_additions'][$copy_key] = $site['theme_mods'][$copy_key];
+			}
+		}
+	}
+	
+	
+	private function find_hidden_widgets( &$site )
+	{
+		$options = $site['options'];
+		$sidebars_widgets = $site['sidebars_widgets'];
+		
+//  		echo '<pre>';
+//  		var_dump($sidebars_widgets);
+//  		echo '</pre>';
+		
+		if( $options['right01-width'] == 0 )
+		{
+			if( array_key_exists('primary-widget-area', $sidebars_widgets) &&
+			    !empty($sidebars_widgets['primary-widget-area']) )
+			{
+				$site['widget_area_warnings']['primary'] = 'The primary widget area has widgets but is not shown.';
+			}
+		}
+		
+		if( $options['right02-width'] == 0 )
+		{
+			if( array_key_exists('secondary-widget-area', $sidebars_widgets) &&
+			    !empty($sidebars_widgets['secondary-widget-area']) )
+			{
+				$site['widget_area_warnings']['secondary'] = 'The secondary widget area has widgets but is not shown.';
+			}
+		}
+
+		if( $options['left01-width'] == 0 )
+		{
+			if( array_key_exists('tertiary-widget-area', $sidebars_widgets) &&
+			    !empty($sidebars_widgets['tertiary-widget-area']) )
+			{
+				$site['widget_area_warnings']['tertiary'] = 'The tertiary widget area has widgets but is not shown.';
+			}
+		}
 	}
 	
 }
