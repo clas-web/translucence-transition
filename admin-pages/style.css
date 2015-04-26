@@ -29,6 +29,7 @@ a.link-site {
 	margin-bottom:0.5em;
 }
 
+#tt-translucence-sites .site_error_message,
 #tt-translucence-sites .widget_area_warnings,
 #tt-translucence-sites .css {
 	color:red;

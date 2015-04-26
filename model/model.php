@@ -422,6 +422,13 @@ class TT_Model
 				//unset($sites[$key]);
 				continue;
 			}
+
+			//
+			// Store site data.
+			//
+			
+			$site['url'] = get_bloginfo( 'url' );
+			$site['title'] = get_bloginfo( 'name' );
 			
 			//
 			// Get Transluence options.
@@ -448,14 +455,6 @@ class TT_Model
 			}
 			
 			if( !$site['status'] ) { $tsites[] = $site; restore_current_blog(); continue; }
-			
-			
-			//
-			// Store site data.
-			//
-			
-			$site['url'] = get_bloginfo( 'url' );
-			$site['title'] = get_bloginfo( 'name' );
 			
 			
 			//
@@ -497,12 +496,16 @@ class TT_Model
 		
 		
 		$all_translucence_sites = $this->get_translucence_sites();
-		$all_translucence_variations = array();
+		$all_translucence_variations = array( 'unsupported' => array() );
 		
 		
 		foreach( $all_translucence_sites as &$site )
 		{
-			if( $site['status'] == false ) continue;
+			if( $site['status'] == false )
+			{
+				$all_translucence_variations['unsupported'][] = $site;
+				continue;
+			}
 			
 			$site['widget_area_warnings'] = array();
 			$site['css_additions'] = array();

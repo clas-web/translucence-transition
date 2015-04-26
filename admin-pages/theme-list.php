@@ -142,11 +142,17 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 		{
 			echo '<div class="site">';
 			
-			echo '<h4 id="blog-'.$site['blog_id'].'"><a href="'.$site['url'].'" target="_blank">'.$site['title'].'</a></h4>';
+			echo '<h4 id="blog-'.$site['blog_id'].'"><a href="'.$site['url'].'" target="_blank">'.$site['title'].'</a> Blog '.$site['blog_id'].'</h4>';
 			
 			if( $site['status'] == false )
 			{
-				echo $site['message'];
+				echo '
+					<div class="site_error_message">
+						<h5>Error Message</h5>
+						<pre>'.$site['message'].'</pre>
+					</div>
+				';
+				echo '</div>';
 				continue;
 			}
 
