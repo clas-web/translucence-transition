@@ -466,6 +466,11 @@ class TT_Model
 			$css = preg_replace('/\n\s*\n/', "\n", $css);
 			$site['css'] = $css;
 			
+			//
+			// Jetpack.
+			//
+			
+			$site['jetpack'] = Jetpack::is_module_active('custom-css');
 			
 			//
 			// Get theme mods.
@@ -477,7 +482,8 @@ class TT_Model
 			
 			restore_current_blog();
 		}
-		
+				
+//		apl_print($tsites);
 		
 		return $tsites;
 	}

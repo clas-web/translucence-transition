@@ -31,6 +31,7 @@ a.link-site {
 
 #tt-translucence-sites .site_error_message,
 #tt-translucence-sites .widget_area_warnings,
+#tt-translucence-sites .jetpack_error,
 #tt-translucence-sites .css {
 	color:red;
 	margin-bottom:0.5em;

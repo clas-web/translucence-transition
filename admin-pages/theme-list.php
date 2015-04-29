@@ -1,7 +1,7 @@
 <?php
 
 /**
- * OrgHub_SitesAdminPage
+ * TT_ThemeListAdminPage
  * 
  * This class controls the admin page "Theme List".
  * 
@@ -102,11 +102,28 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 	 */
 	public function display()
 	{
-		$old_site_url = 'http://clas-incubator-wp.uncc.edu';
+		$old_site_url = 'http://clas-pages-test.uncc.edu';
 		$as = $this->model->analyze_sites();
 		
-		echo count($as['sites']).' Sites found.';
-		
+		$errors = 0;
+		foreach( $as['sites'] as $site )
+		{
+			if( $site['widget_area_warnings'] ) { $errors++; continue; }
+			if( $site['css'] ) { $errors++; continue; }
+			if( $site['theme_mods_additions'] )
+			{
+				if( array_key_exists('header_image', $site['theme_mods_additions']) &&
+				    $site['theme_mods_additions']['header_image'] == 'random-uploaded-image' )
+				{
+					$errors++; continue;
+				}
+			}
+			if( ($site['css'] || $site['css_additions']) && !$site['jetpack'] ) { $errors++; continue; }
+		}
+
+		echo count($as['sites']).' Sites found.<br/>';
+		echo $errors.' Sites with errors<br/>';
+
 		?>
 		<h3>Theme Variation List</h3>
 		<div id="tt-variations-list">
@@ -114,9 +131,11 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 		
 		foreach( $as['variations'] as $variation => $sites )
 		{
-			echo '<a href="#variation-'.$variation.'">'.$variation.' ('.count($sites).')</a>&nbsp;&nbsp;&nbsp;&nbsp;';
+//			echo '<a href="#variation-'.$variation.'">'.$variation.' ('.count($sites).')</a>&nbsp;&nbsp;&nbsp;&nbsp;';
+			echo $variation.' ('.count($sites).')&nbsp;&nbsp;&nbsp;&nbsp;';
 		}
 		
+/*		
 		foreach( $as['variations'] as $variation => $sites )
 		{
 			echo '<h4 id="variation-'.$variation.'">'.$variation.' ('.count($sites).')</h4>';
@@ -130,6 +149,7 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 				';
 			}
 		}
+*/
 		
 		?>
 		</div>
@@ -192,6 +212,13 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 						<pre>'.$this->print_array($site['widget_area_warnings']).'</pre>
 					</div>
 				';
+			if( ($site['css'] || $site['css_additions']) && !$site['jetpack'] )
+				echo '
+					<div class="jetpack_error">
+						<h5>Jetpack Error</h5>
+						<pre>Jetpack is not enabled.</pre>
+					</div>
+				';
 			if( $site['css'] )
 				echo '
 					<div class="css">
@@ -244,6 +271,11 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 				$html .= '     ';
 			}
 			
+			if( $key == 'header_image' && $value == 'random-uploaded-image' )
+			{
+				$html .= '<div style="color:red">';
+			}
+			
 			if( is_array($value) )
 			{
 				$html .= "[$key] =>\r\n";
@@ -257,6 +289,11 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 			else
 			{
 				$html .=  "[$key] => $value\r\n";
+			}
+
+			if( $key == 'header_image' && $value == 'random-uploaded-image' )
+			{
+				$html .= '</div>';
 			}
 		}
 		
