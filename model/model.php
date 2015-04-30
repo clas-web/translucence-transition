@@ -465,12 +465,25 @@ class TT_Model
 			$css = preg_replace('!/\*.*?\*/!s', '', $css);
 			$css = preg_replace('/\n\s*\n/', "\n", $css);
 			$site['css'] = $css;
+
+			$css_options = get_option( 'sccss_settings' );
+			if( !empty($css_options['sccss-content']) )
+			{
+				$css_options = $css_options['sccss-content'];
+				$css_options = wp_kses( $css_options, array( '\'', '\"' ) );
+				$css_options = str_replace( '&gt;', '>', $css_options );
+				$css_options = preg_replace('!/\*.*?\*/!s', '', $css_options);
+				$css_options = preg_replace('/\n\s*\n/', "\n", $css_options);
+				$site['css'] .= "\n".$css_options;
+			}
+			
+			$site['css'] = trim($site['css']);
 			
 			//
 			// Jetpack.
 			//
 			
-			$site['jetpack'] = Jetpack::is_module_active('custom-css');
+//			$site['jetpack'] = Jetpack::is_module_active('custom-css');
 			
 			//
 			// Get theme mods.

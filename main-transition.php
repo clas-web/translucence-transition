@@ -93,17 +93,29 @@ class TTTT_Main
 		//
 		//
 		
-		if( !class_exists('Jetpack_Custom_CSS') )
-		{
-			require_once( ABSPATH . '/wp-content/plugins/jetpack/class.jetpack-user-agent.php' );
-			require_once( ABSPATH . '/wp-content/plugins/jetpack/modules/custom-css/custom-css.php' );
-		}
+// 		if( !post_type_exists('safecss') )
+// 			Jetpack_Custom_CSS::init();
 		
-		if( !post_type_exists('safecss') )
-			Jetpack_Custom_CSS::init();
-
-		$css = Jetpack_Custom_CSS::get_css(true);
-//		$css = '';
+		$css = '';
+		if( class_exists('Jetpack_Custom_CSS') )
+			$css .= 'Jetpack Custom CSS';
+		if( post_type_exists('safecss') )
+			$css .= 'safecss';
+		
+		if( class_exists('Jetpack_Custom_CSS') && post_type_exists('safecss') )
+			$css = Jetpack_Custom_CSS::get_css(true);
+		
+		$css_options = get_option( 'sccss_settings', array() );
+		if( !empty($css_options['sccss-content']) )
+		{
+			$css_options = isset( $css_options['sccss-content'] ) ? $css_options['sccss-content'] : '';
+			$css_options = wp_kses( $css_options, array( '\'', '\"' ) );
+			$css_options = str_replace( '&gt;', '>', $css_options );
+			$css_options = preg_replace('!/\*.*?\*/!s', '', $css_options);
+			$css_options = preg_replace('/\n\s*\n/', "\n", $css_options);
+			$css .= "\n\n".$css_options;
+		}
+		$css .= "\n\n";
 		
 		//
 		// create new css based on old translucence settings.
@@ -173,6 +185,15 @@ class TTTT_Main
 			}
 		}
 		
+		$css = str_replace( '>', '&gt;', $css );
+		$css = preg_replace( '/\t+/', "\t", $css );
+		$css = preg_replace( '/  +/', ' ', $css );
+		$css = preg_replace( '/\}/', "}\n", $css );
+		$css = preg_replace( '/([ \t]+)\}/', '}', $css );
+		$css = preg_replace( '/,\n(\s+)/', ",\n", $css );
+		$css = preg_replace( '/\n( +)/', "\n", $css );
+
+		
 		//
 		// update database with new css and theme mods.
 		//
@@ -180,7 +201,14 @@ class TTTT_Main
 		update_option( 'vtt-variation', $theme_mods['vtt-variation'] );
 		update_option( 'vtt-options', $vtt_options );
 		update_option( 'theme_mods_'.$stylesheet, $theme_mods );
-		Jetpack_Custom_CSS::save( array( 'css' => $css ) );
+		
+		$css_options = get_option( 'sccss_settings', array() );
+		$css_options['sccss-content'] = $css;
+		update_option( 'sccss_settings', $css_options );
+		
+//		apl_print($css_options);
+
+//		Jetpack_Custom_CSS::save( array( 'css' => $css ) );
 		update_option( 'tt_transition_complete', '1' );
 	}
 	
@@ -423,9 +451,11 @@ class TTTT_Main
 			floatval($options['title-box-opacity']) != 1 )
 		{
 			$css .= 
-			' #header #title-box .name { '.
+			' #header #title-box .name { 
+				'.
 				TTTT_Main::background_color( strtolower($options['title-box-color']), floatval($options['title-box-opacity']) ).
-			' } ';
+				'
+			} ';
 		}
 
 		if( strtolower($options['site-title-color']) != '#ffffff' )
@@ -464,9 +494,11 @@ class TTTT_Main
 			floatval($options['description-box-opacity']) != 1 )
 		{
 			$css .= 
-			' #header #title-box .description { '.
+			' #header #title-box .description { 
+				'.
 				TTTT_Main::background_color( strtolower($options['description-box-color']), floatval($options['description-box-opacity']) ).
-			' } ';
+				'
+			} ';
 		}
 
 		if( strtolower($options['site-description-color']) != '#ffffff' )
@@ -544,9 +576,11 @@ class TTTT_Main
 			floatval($options['site-opacity']) != 1 )
 		{
 			$css .= 
-			' #site-inside-wrapper { '.
+			' #site-inside-wrapper {
+				'.
 				TTTT_Main::background_color( strtolower($options['site-color']), floatval($options['site-opacity']) ).
-			' } ';
+				'
+			} ';
 		}
 
 
@@ -575,9 +609,11 @@ class TTTT_Main
 			floatval($options['header-opacity']) != 1 )
 		{
 			$css .= 
-			' #header { '.
+			' #header { 
+				'.
 				TTTT_Main::background_color( strtolower($options['header-color']), floatval($options['header-opacity']) ).
-			' } ';
+				'
+			} ';
 		}
 		
 /*
@@ -633,9 +669,11 @@ class TTTT_Main
 			floatval($options['cat-links-opacity']) != 1 )
 		{
 			$css .= 
-			' .taxonomy-list.category-list > a { '.
+			' .taxonomy-list.category-list > a { 
+				'.
 				TTTT_Main::background_color( strtolower($options['cat-links-color']), floatval($options['cat-links-opacity']) ).
-			' } ';
+				'
+			} ';
 		}
 
 /*
@@ -689,9 +727,11 @@ class TTTT_Main
 			floatval($options['tag-links-opacity']) != 1 )
 		{
 			$css .= 
-			' .taxonomy-list.post_tag-list > a { '.
+			' .taxonomy-list.post_tag-list > a { 
+				'.
 				TTTT_Main::background_color( strtolower($options['tag-links-color']), floatval($options['tag-links-opacity']) ).
-			' } ';
+				'
+			} ';
 		}
 		
 		
@@ -733,15 +773,13 @@ class TTTT_Main
 	{
 		if( $opacity == 0 )
 		{
-			return "background-color: transparent";
+			return 'background-color: transparent';
 		}
 
 		list( $r, $g, $b ) = TTTT_Main::hex2rgb( $hex );
 		
-		return "
-			background-color: $hex;
-			background-color: rgba( $r, $g, $b, $opacity );
-		";
+		return "background-color: $hex;
+				background-color: rgba( $r, $g, $b, $opacity );";
 	}
 	
 	

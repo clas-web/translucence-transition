@@ -118,7 +118,7 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 					$errors++; continue;
 				}
 			}
-			if( ($site['css'] || $site['css_additions']) && !$site['jetpack'] ) { $errors++; continue; }
+//			if( ($site['css'] || $site['css_additions']) && !$site['jetpack'] ) { $errors++; continue; }
 		}
 
 		echo count($as['sites']).' Sites found.<br/>';
@@ -212,13 +212,13 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 						<pre>'.$this->print_array($site['widget_area_warnings']).'</pre>
 					</div>
 				';
-			if( ($site['css'] || $site['css_additions']) && !$site['jetpack'] )
-				echo '
-					<div class="jetpack_error">
-						<h5>Jetpack Error</h5>
-						<pre>Jetpack is not enabled.</pre>
-					</div>
-				';
+// 			if( ($site['css'] || $site['css_additions']) && !$site['jetpack'] )
+// 				echo '
+// 					<div class="jetpack_error">
+// 						<h5>Jetpack Error</h5>
+// 						<pre>Jetpack is not enabled.</pre>
+// 					</div>
+// 				';
 			if( $site['css'] )
 				echo '
 					<div class="css">
