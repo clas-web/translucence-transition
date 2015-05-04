@@ -55,7 +55,7 @@ class TTNAP_Main
 		
 		$pages = new APL_Handler( true );
 		$pages->add_page( new TT_ThemeListAdminPage );
-		$pages->add_page( new TT_ActivateJetpackAdminPage );
+//		$pages->add_page( new TT_ActivateJetpackAdminPage );
 		$pages->setup();
 	}
 	
