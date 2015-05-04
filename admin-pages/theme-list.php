@@ -106,24 +106,50 @@ class TT_ThemeListAdminPage extends APL_AdminPage
 		$as = $this->model->analyze_sites();
 		
 		$errors = 0;
+		$site_error_count = 0;
+		$widget_warnings_count = 0;
+		$css_warnings_count = 0;
+		$header_image_count = 0;
+		
 		foreach( $as['sites'] as $site )
 		{
-			if( $site['widget_area_warnings'] ) { $errors++; continue; }
-			if( $site['css'] ) { $errors++; continue; }
+			$has_error = false;
+			if( $site['status'] == false ) 
+			{
+				$has_error = true;
+				$site_error_count++;
+			}
+			if( $site['widget_area_warnings'] ) 
+			{ 
+				$has_error = true;
+				$widget_warnings_count++; 
+			}
+			if( $site['css'] ) 
+			{ 
+				$has_error = true;
+				$css_warnings_count++; 
+			}
 			if( $site['theme_mods_additions'] )
 			{
 				if( array_key_exists('header_image', $site['theme_mods_additions']) &&
 				    $site['theme_mods_additions']['header_image'] == 'random-uploaded-image' )
 				{
-					$errors++; continue;
+					$has_error = true;
+					$header_image_count++;
 				}
 			}
-//			if( ($site['css'] || $site['css_additions']) && !$site['jetpack'] ) { $errors++; continue; }
+			
+			if( $has_error ) $errors++;
 		}
 
-		echo count($as['sites']).' Sites found.<br/>';
-		echo $errors.' Sites with errors<br/>';
-
+		echo count($as['sites']).' translucence sites found.<br/>';
+		echo '&nbsp;&nbsp;&nbsp;'.$errors.' translucence sites with errors<br/>';
+		echo '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.$site_error_count.' sites have unsupported theme errors.<br/>';
+		echo '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.$widget_warnings_count.' sites with hidden widget areas.<br/>';
+		echo '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.$css_warnings_count.' sites with existing css.<br/>';
+		echo '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.$header_image_count.' sites using random-uploaded-image header.<br/>';
+		echo $as['variations-theme-count'].' variations-template-theme sites found.<br/>';
+		
 		?>
 		<h3>Theme Variation List</h3>
 		<div id="tt-variations-list">
