@@ -405,6 +405,8 @@ class TT_Model
 		$keys = array_keys($sites);
 		$tsites = array();
 		
+		$variations_theme_count = 0;
+		
 		foreach( $keys as $key )
 		{
 			$site =& $sites[$key];
@@ -414,15 +416,23 @@ class TT_Model
 			switch_to_blog( $site['blog_id'] );
 			
 			//
+			// Ignore sites that are archived or deleted.
+			//
+			
+			if( $site['archived'] || $site['deleted'] )
+				continue;
+			
+			//
 			// Do not continue if not a translucence theme.
 			//
 			
-			if( get_option('template') != '2010-translucence' )
-			{
-				//unset($sites[$key]);
+			$t = get_option('template');
+			if( $t == 'variations-template-theme' )
+				$variations_theme_count++;
+			
+			if( $t != '2010-translucence' )
 				continue;
-			}
-
+			
 			//
 			// Store site data.
 			//
@@ -498,7 +508,8 @@ class TT_Model
 				
 //		apl_print($tsites);
 		
-		return $tsites;
+		return array( 'sites' => $tsites, 'variations_count' => $variations_theme_count );
+//		return $tsites;
 	}
 	
 	public function analyze_sites()
@@ -514,11 +525,11 @@ class TT_Model
 			Jetpack_Custom_CSS::init();
 		
 		
-		$all_translucence_sites = $this->get_translucence_sites();
+		$ts = $this->get_translucence_sites();
 		$all_translucence_variations = array( 'unsupported' => array() );
 		
 		
-		foreach( $all_translucence_sites as &$site )
+		foreach( $ts['sites'] as &$site )
 		{
 			if( $site['status'] == false )
 			{
@@ -561,8 +572,9 @@ class TT_Model
 		
 		
 		return array(
-			'sites'			=> $all_translucence_sites,
+			'sites'			=> $ts['sites'],
 			'variations'	=> $all_translucence_variations,
+			'variations-theme-count' => $ts['variations_count'],
 		);
 	}
 	
