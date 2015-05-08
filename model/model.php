@@ -593,8 +593,11 @@ class TT_Model
 		{
 			switch( strtolower($options['header-text-display']) )
 			{
-				case 'top':
 				case 'above':
+					$site['vtt_options_additions']['header-text-display'] = 'hleft vabove';
+					break;
+				
+				case 'top':
 					$site['vtt_options_additions']['header-text-display'] = 'hleft vtop';
 					break;
 				
@@ -603,11 +606,7 @@ class TT_Model
 					break;
 				
 				case 'hide':
-					$site['css_additions']['title-box-display'] = 'none';
-					break;
-
-				case 'middle':
-				default:
+					$site['vtt_options_additions']['header-text-hide'] = 'true';
 					break;
 			}
 		}
@@ -687,8 +686,11 @@ class TT_Model
 		{
 			switch( strtolower($options['header-text-display']) )
 			{
-				case 'top':
 				case 'above':
+					$site['vtt_options_additions']['header-text-display'] = 'hleft vabove';
+					break;
+				
+				case 'top':
 					$site['vtt_options_additions']['header-text-display'] = 'hleft vtop';
 					break;
 				
@@ -697,9 +699,9 @@ class TT_Model
 					break;
 				
 				case 'hide':
-					$site['css_additions']['title-box-display'] = 'none';
+					$site['vtt_options_additions']['header-text-hide'] = 'true';
 					break;
-
+				
 				case 'middle':
 				default:
 					break;

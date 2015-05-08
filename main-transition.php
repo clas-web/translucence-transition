@@ -434,7 +434,7 @@ class TTTT_Main
 		if( strtolower($options['title-box-visibility']) == 'none' )
 		{
 			$css .= 
-			' #header #title-box .name {
+			' #title-box .name {
 				display:none;
 			} ';
 		}
@@ -443,7 +443,7 @@ class TTTT_Main
 			floatval($options['title-box-opacity']) != 1 )
 		{
 			$css .= 
-			' #header #title-box .name { 
+			' #title-box .name { 
 				'.
 				TTTT_Main::background_color( strtolower($options['title-box-color']), floatval($options['title-box-opacity']) ).
 				'
@@ -453,7 +453,7 @@ class TTTT_Main
 		if( strtolower($options['site-title-color']) != '#ffffff' )
 		{
 			$css .= 
-			' #header #title-box .name {
+			' #title-box .name {
 				color:'.strtolower($options['site-title-color']).';
 			} ';
 		}
@@ -477,7 +477,7 @@ class TTTT_Main
 		if( strtolower($options['description-box-visibility']) == 'none' )
 		{
 			$css .= 
-			' #header #title-box .description {
+			' #title-box .description {
 				display:none;
 			} ';
 		}
@@ -486,7 +486,7 @@ class TTTT_Main
 			floatval($options['description-box-opacity']) != 1 )
 		{
 			$css .= 
-			' #header #title-box .description { 
+			' #title-box .description { 
 				'.
 				TTTT_Main::background_color( strtolower($options['description-box-color']), floatval($options['description-box-opacity']) ).
 				'
@@ -496,7 +496,7 @@ class TTTT_Main
 		if( strtolower($options['site-description-color']) != '#ffffff' )
 		{
 			$css .= 
-			' #header #title-box .description {
+			' #title-box .description {
 				color:'.strtolower($options['site-description-color']).';
 			} ';
 		}
@@ -514,20 +514,19 @@ class TTTT_Main
 			
 			switch( strtolower($options['header-text-display']) )
 			{
-				case 'top':
 				case 'above':
-					$vtt_options['header']['title-position'] = 'hleft vtop';
+					$vtt_options['header']['title-position'] = 'hleft vabove';
 					break;
+				
+				case 'top':
+					$vtt_options['header']['title-position'] = 'hleft vtop';
 				
 				case 'bottom':
 					$vtt_options['header']['title-position'] = 'hleft vbottom';
 					break;
 				
 				case 'hide':
-					$css .= 
-					' #header #title-box {
-						display:none;
-					} ';
+					$vtt_options['header']['title-hide'] = true;
 					break;
 
 				case 'middle':
