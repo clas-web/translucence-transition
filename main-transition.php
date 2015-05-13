@@ -93,8 +93,15 @@ class TTTT_Main
 		//
 		//
 		
-		$css = Jetpack_Custom_CSS::get_css();
-		if( !$css ) $css = '';
+		if( class_exists('Jetpack_Custom_CSS') )
+		{
+			$css = Jetpack_Custom_CSS::get_css();
+			if( !$css ) $css = '';
+		}
+		else
+		{
+			$css = '';
+		}
 		
 		
 		$css_options = get_option( 'sccss_settings', array() );
