@@ -273,6 +273,7 @@ class TTTT_Main
 			'vtt-footer-2' 			=> $footer2,
 			'vtt-footer-3' 			=> $footer3,
 			'vtt-footer-4' 			=> $footer4,
+			'wp_inactive_widgets'	=> array(),
 		);
 		
 		
