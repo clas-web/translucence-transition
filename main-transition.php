@@ -197,8 +197,11 @@ class TTTT_Main
 		// update database with new css and theme mods.
 		//
 		
+// 		update_option( 'tt-theme-mods', $theme_mods );
+// 		update_option( 'tt-css', $css );
+		
 		update_option( 'vtt-variation', $theme_mods['vtt-variation'] );
-		update_option( 'vtt-options', $vtt_options );
+		update_option( 'vtt-options', array('theme-mods' => $theme_mods) );
 		update_option( 'theme_mods_'.$stylesheet, $theme_mods );
 		
 		$css_options = get_option( 'sccss_settings', array() );
@@ -441,29 +444,22 @@ class TTTT_Main
 		
 		if( strtolower($options['title-box-visibility']) == 'none' )
 		{
-			$css .= 
-			' #title-box .name {
-				display:none;
-			} ';
+			$theme_mods['blogname'] = '';
+			$theme_mods['blogname_url'] = '';
 		}
-
+		
 		if( strtolower($options['title-box-color']) != '#000000' ||
 			floatval($options['title-box-opacity']) != 1 )
 		{
-			$css .= 
-			' #title-box .name { 
-				'.
-				TTTT_Main::background_color( strtolower($options['title-box-color']), floatval($options['title-box-opacity']) ).
-				'
-			} ';
+			$theme_mods['header_textbgcolor'] = TTTT_Main::background_color_rgb( 
+				strtolower($options['title-box-color']), 
+				floatval($options['title-box-opacity'])
+			);
 		}
 
 		if( strtolower($options['site-title-color']) != '#ffffff' )
 		{
-			$css .= 
-			' #title-box .name {
-				color:'.strtolower($options['site-title-color']).';
-			} ';
+			$theme_mods['header_textcolor'] = str_replace('#','',strtolower($options['site-title-color']));
 		}
 
 			
@@ -484,30 +480,28 @@ class TTTT_Main
 		
 		if( strtolower($options['description-box-visibility']) == 'none' )
 		{
-			$css .= 
-			' #title-box .description {
-				display:none;
-			} ';
+			$theme_mods['blogdescription'] = '';
+			$theme_mods['blogdescription_url'] = '';
 		}
 
-		if( strtolower($options['description-box-color']) != '#000000' ||
-			floatval($options['description-box-opacity']) != 1 )
-		{
-			$css .= 
-			' #title-box .description { 
-				'.
-				TTTT_Main::background_color( strtolower($options['description-box-color']), floatval($options['description-box-opacity']) ).
-				'
-			} ';
-		}
-
-		if( strtolower($options['site-description-color']) != '#ffffff' )
-		{
-			$css .= 
-			' #title-box .description {
-				color:'.strtolower($options['site-description-color']).';
-			} ';
-		}
+// 		if( strtolower($options['description-box-color']) != '#000000' ||
+// 			floatval($options['description-box-opacity']) != 1 )
+// 		{
+// 			$css .= 
+// 			' #title-box .description { 
+// 				'.
+// 				TTTT_Main::background_color( strtolower($options['description-box-color']), floatval($options['description-box-opacity']) ).
+// 				'
+// 			} ';
+// 		}
+// 
+// 		if( strtolower($options['site-description-color']) != '#ffffff' )
+// 		{
+// 			$css .= 
+// 			' #title-box .description {
+// 				color:'.strtolower($options['site-description-color']).';
+// 			} ';
+// 		}
 
 
 /*
@@ -523,20 +517,21 @@ class TTTT_Main
 			switch( strtolower($options['header-text-display']) )
 			{
 				case 'above':
-					$vtt_options['header']['title-position'] = 'hleft vabove';
+					$theme_mods['header-title-position'] = 'hleft vabove';
 					break;
 				
 				case 'top':
-					$vtt_options['header']['title-position'] = 'hleft vtop';
+					$theme_mods['header-title-position'] = 'hleft vtop';
+					break;
 				
 				case 'bottom':
-					$vtt_options['header']['title-position'] = 'hleft vbottom';
+					$theme_mods['header-title-position'] = 'hleft vbottom';
 					break;
 				
 				case 'hide':
-					$vtt_options['header']['title-hide'] = true;
+					$theme_mods['header-title-hide'] = true;
 					break;
-
+					
 				case 'middle':
 				default:
 					break;
@@ -767,6 +762,21 @@ class TTTT_Main
 		return $rgb; // returns an array with the rgb values
 	}
 	
+	public static function background_color_rgb( $hex, $opacity )
+	{
+		list( $r, $g, $b ) = TTTT_Main::hex2rgb( $hex );
+		return "rgba( $r, $g, $b, $opacity );";
+	}
+
+	public static function background_color_hex( $hex, $opacity )
+	{
+		if( $opacity == 0 )
+		{
+			return null;
+		}
+
+		return $hex;
+	}
 	
 	public static function background_color( $hex, $opacity )
 	{
