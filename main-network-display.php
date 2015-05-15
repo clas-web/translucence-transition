@@ -32,9 +32,7 @@ endif;
 
 if( is_admin() ):
 
-add_action( 'admin_enqueue_scripts', array('TTNAP_Main', 'enqueue_scripts') );
 add_action( 'wp_loaded', array('TTNAP_Main', 'load') );
-add_action( 'network_admin_menu', array('TTNAP_Main', 'update'), 5 );
 
 endif;
 
@@ -43,29 +41,13 @@ if( !class_exists('TTNAP_Main') ):
 class TTNAP_Main
 {
 	
-	public static function enqueue_scripts()
-	{
-		wp_enqueue_script( 'apl-ajax', plugins_url('apl/ajax.js', __FILE__), array('jquery') );
-	}
-	
 	public static function load()
 	{
 		require_once( dirname(__FILE__).'/admin-pages/require.php' );
 		
 		$pages = new APL_Handler( true );
 		$pages->add_page( new TT_ThemeListAdminPage );
-//		$pages->add_page( new TT_ActivateJetpackAdminPage );
 		$pages->setup();
-	}
-	
-	
-	public static function update()
-	{
-		$model = TT_Model::get_instance();
-		$model->create_tables();
-
- 		update_option( TTNAP_VERSION_OPTION, TTNAP_VERSION );
- 		update_option( TTNAP_DB_VERSION_OPTION, TTNAP_DB_VERSION );
 	}
 	
 }
