@@ -24,6 +24,9 @@ define( 'TTTT_VERSION_OPTION', 'tt-version' );
 endif;
 
 
+register_activation_hook( __FILE__, array('TTTT_Main', 'activate_plugin') );
+
+
 add_action( 'update_option_template', array('TTTT_Main', 'theme_switch'), 10, 2 );
 add_action( 'after_switch_theme', array('TTTT_Main', 'after_switch_theme'), 1 );
 
@@ -31,6 +34,25 @@ add_action( 'after_switch_theme', array('TTTT_Main', 'after_switch_theme'), 1 );
 if( !class_exists('TTTT_Main') ):
 class TTTT_Main
 {
+
+	/**
+	 * 
+	 */
+	public static function activate_plugin()
+	{
+		if( !defined('APL') || !defined('APL_VERSION') )
+		{
+			deactivate_plugins( plugin_basename( __FILE__ ) );
+			wp_die( 'The '.TTTT.' plugin requires the APL library.' );
+		}
+		
+		if( version_compare(APL_VERSION, '1.0') < 0 )
+		{
+			deactivate_plugins( plugin_basename( __FILE__ ) );
+			wp_die( 'The '.TTTT.' plugin requires version 1.0 or greater of the APL library.' );
+		}
+	}
+	
 	
 	public static function theme_switch( $old_template, $new_template )
 	{	
@@ -555,6 +577,7 @@ class TTTT_Main
 			' #site-inside-wrapper {
 				border:none;
 				box-shadow:0 0 0 transparent;
+				padding:0;
 			} ';
 		}
 

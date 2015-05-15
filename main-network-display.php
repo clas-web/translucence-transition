@@ -33,7 +33,6 @@ endif;
 if( is_admin() ):
 
 add_action( 'admin_enqueue_scripts', array('TTNAP_Main', 'enqueue_scripts') );
-require_once( dirname(__FILE__).'/apl/apl.php' );
 add_action( 'wp_loaded', array('TTNAP_Main', 'load') );
 add_action( 'network_admin_menu', array('TTNAP_Main', 'update'), 5 );
 
