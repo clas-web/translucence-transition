@@ -902,6 +902,41 @@ class TT_Model
 		}
 	}
 	
+	
+	public function get_vtt_sites()
+	{
+		$sites = wp_get_sites( array( 'limit' => 1000000 ) );
+		$vtt_sites = array();
+		
+		foreach( $sites as &$site )
+		{
+			switch_to_blog( $site['blog_id'] );
+			
+			if( get_option('template') == 'variations-template-theme' )
+			{
+				$site['url'] = get_bloginfo( 'url' );
+				$site['title'] = get_bloginfo( 'name' );
+				
+				$css_options = get_option( 'sccss_settings', array() );
+				if( !empty($css_options['sccss-content']) )
+				{
+					$css_options = isset( $css_options['sccss-content'] ) ? $css_options['sccss-content'] : '';
+					$css_options = wp_kses( $css_options, array( '\'', '\"' ) );
+					$css_options = str_replace( '&gt;', '>', $css_options );
+					$css_options = preg_replace('!/\*.*?\*/!s', '', $css_options);
+					$css_options = preg_replace('/\n\s*\n/', "\n", $css_options);
+				}
+				$site['css'] = $css_options;
+				
+				$vtt_sites[] = $site;
+			}		
+			
+			restore_current_blog();
+		}
+		
+		return $vtt_sites;
+	}
+	
 }
 endif;
 

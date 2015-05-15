@@ -56,15 +56,18 @@ a.link-site {
 	color:blue;
 }
 
+.tt-css-list .site,
 #tt-translucence-sites .site {
 	border-bottom:solid 3px #666;
 	padding:1em 0em;
 }
 
+.tt-css-list h4,
 #tt-translucence-sites h4 {
 	margin:0;
 }
 
+.tt-css-list .convert-links,
 #tt-translucence-sites .convert-links {
 	border:solid 1px #ccc;
 	padding:0.5em;
@@ -75,12 +78,10 @@ a.link-site {
 	display:inline-block;
 }
 
-/*
-echo '<div class="stylesheet">'.$site['stylesheet'].' / '.$site['options']['background'].'</div>';
-if( $site['css'] )
-	echo '<div class="css"><pre>'.$site['css'].'</pre></div>';
-echo '<div class="theme_mods"><pre>';
-	var_dump($site['theme_mods']);
-echo '</pre></div>';
-echo '<div class="changes"><pre>'.''.'</pre></div>';
-*/
+
+
+
+.tt-css-list pre {
+	font-size:0.75em;
+	line-height:1.25em;
+}
