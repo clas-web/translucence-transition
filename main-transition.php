@@ -3,9 +3,10 @@
 Plugin Name: Translucence Transition - Theme Transition
 Plugin URI: 
 Description: 
-Version: 0.0.1
+Version: 0.1.1
 Author: Crystal Barton
 Author URI: http://www.crystalbarton.com
+GitHub Plugin URI: https://github.com/clas-web/translucence-transition
 */
 
 
